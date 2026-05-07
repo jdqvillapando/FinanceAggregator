@@ -1,6 +1,6 @@
 namespace WalletService.Models;
 
-public class Assets
+public class Asset
 {
     public Guid Id { get; set; }
     public string Ticker { get; set; } = string.Empty; // e.g., BTC, ETH, USD
