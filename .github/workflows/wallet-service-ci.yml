@@ -1,0 +1,31 @@
+name: Wallet Service CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/WalletService/**' # Trigger only for Wallet Service changes
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/WalletService/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' 
+
+    - name: Restore dependencies
+      run: dotnet restore src/WalletService.csproj
+
+    - name: Build
+      run: dotnet build src/WalletService.csproj --no-restore --configuration Release
+
+    # We will add a 'Run Tests' step here once we create our test project!
