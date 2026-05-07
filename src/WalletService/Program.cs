@@ -1,0 +1,229 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using MassTransit;
+using StackExchange.Redis;
+using Polly;
+using Polly.Extensions.Http;
+using WalletService.Consumers;
+using WalletService.Data;
+using WalletService.Middleware;
+using WalletService.Services;
+using WalletService.Validators;
+using WalletService.Hubs;
+
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Define resilience policies
+// (1)
+var retryPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError() // Handles 5xx status codes, 408 timeouts, and network exceptions
+        .WaitAndRetryAsync(
+            3,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff: 2s, 4s, 8s
+            onRetry: (outcome, timespan, retryCount, context) =>
+            {
+                Console.WriteLine($"[Polly Retry] Attempt {retryCount} failed. Waiting {timespan.TotalSeconds}s before next try.");
+            }
+        );
+
+// (2)
+var circuitBreakerPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            handledEventsAllowedBeforeBreaking: 5, // Break circuit after 5 consecutive failures
+            durationOfBreak: TimeSpan.FromSeconds(30), // Keep circuit open for 30s before testing again
+            onBreak: (outcome, breakDuration, context) =>
+            {
+                Console.WriteLine($"[Polly Circuit Breaker] Circuit tripped! Blocking traffic for {breakDuration.TotalSeconds}s.");
+            },
+            onReset: (context) => Console.WriteLine("[Polly Circuit Breaker] Circuit closed and operational again."),
+            onHalfOpen: () => Console.WriteLine("[Polly Circuit Breaker] Circuit is half-open. Testing next request...")
+        );
+
+// Register DbContext
+builder.Services.AddDbContext<WalletDbContext>(options =>
+{
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(connString, npgsqlOptions =>
+    {
+        // Explicitly map EF migrations tracking to our isolated schema context
+        npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "wallet_schema");
+    });
+});
+
+// Add Authentication Services
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // SignalR sends the token as a query string parameter
+                var accessToken = context.Request.Query["access_token"];
+                
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// Bind the policies straight to your Named or Typed HttpClient
+builder.Services
+    .AddHttpClient(
+        "IdentityServiceClient",
+        client =>
+        {
+            // Point this to your internal container gateway or endpoint
+            client.BaseAddress = new Uri("http://identity-service:5205/"); 
+            client.Timeout = TimeSpan.FromSeconds(10);
+        }
+    )
+    .AddPolicyHandler(retryPolicy) // Layers on the Retry capability first
+    .AddPolicyHandler(circuitBreakerPolicy); // Wraps the call inside a Circuit Breaker boundary
+
+// Bind Transaction Manager
+builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Bind SignalR services to the DI container
+builder.Services.AddSignalR();
+
+// Register a single thread-safe connection pool instance to avoid socket exhaustion
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+{
+    // Enforce default or fallback port mappings to 5207 (Redis listens to port 6379 by default)
+    var configuration = builder.Configuration["Redis:Host"] ?? // Use the environment variable "Redis:Host" (Redis__Host in Docker) provided by Docker Compose
+        builder.Configuration.GetConnectionString("Redis") ??
+        "localhost:5207";
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
+// Configure .NET's standard IDistributedCache abstraction layer backed by Redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:5207";
+    // Namespace partitioning isolation
+    options.InstanceName = "FinanceAggregator_Wallets:";
+});
+
+// Register FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateWalletDtoValidator>();
+
+// Bind MassTransit
+builder.Services.AddMassTransit(x =>
+{
+    // Add the consumer(s)
+    x.AddConsumer<UserCreatedConsumer>();
+    x.AddConsumer<TransactionExecutedConsumer>();
+
+    // Configure EF Core Outbox
+    x.AddEntityFrameworkOutbox<WalletDbContext>(efo =>
+    {
+        // Keeps outbox tracking entries bundled inside your schema
+        efo.QueryDelay = TimeSpan.FromSeconds(1);
+        // Use PostgreSQL orchestration rules because we're using such
+        efo.UsePostgres();
+        // Enable background outbox delivery worker
+        efo.UseBusOutbox();
+    });
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        // Dynamic Host Injection
+        // In Docker, RabbitMQ:Host is reinterpreted as RabbitMQ__Host
+        var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        cfg.Host(rabbitHost, "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+
+        // Resilient Bus Connection (Prevents 500 Startup Crash)
+        cfg.UseMessageRetry(r => r.Exponential(5, 
+            TimeSpan.FromSeconds(2), 
+            TimeSpan.FromSeconds(30), 
+            TimeSpan.FromSeconds(5)));
+
+        // Configure the "Inbox" (Queue) for this service
+        cfg.ReceiveEndpoint("user-created-queue", e =>
+        {
+            // Connect the consumer to this queue
+            e.ConfigureConsumer<UserCreatedConsumer>(context);
+        });
+
+        cfg.ReceiveEndpoint("transaction-executed-queue", e =>
+        {
+            e.ConfigureConsumer<TransactionExecutedConsumer>(context);
+        });
+    });
+});
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    // AUTOMATIC DATABASE MIGRATION ON STARTUP (WALLET SERVICE)
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<WalletDbContext>();
+        context.Database.Migrate(); // Ensures Wallet.db tables exist!
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the Wallet database.");
+    }
+}
+
+// Configure "catch-all" net that handles any unexpected errors
+app.UseMiddleware<ExceptionMiddleware>();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+// Only redirect to HTTPS if we are not in development to avoid the port warning
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.MapHub<WalletHub>("/hubs/wallets"); // Expose the secure hub pathway over the server instance
+
+app.Run();

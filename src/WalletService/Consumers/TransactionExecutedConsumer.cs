@@ -1,0 +1,82 @@
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using MassTransit;
+using WalletService.Contracts;
+using WalletService.Data;
+using WalletService.Hubs;
+
+namespace WalletService.Consumers;
+
+public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
+{
+    private readonly WalletDbContext _context;
+    private IHubContext<WalletHub, IWalletClient> _hubContext;
+    private readonly IDistributedCache _cache;
+    private readonly ILogger<TransactionExecutedConsumer> _logger;
+
+    public TransactionExecutedConsumer(
+        WalletDbContext context,
+        IHubContext<WalletHub,
+        IWalletClient> hubContext,
+        IDistributedCache cache,
+        ILogger<TransactionExecutedConsumer> logger
+    )
+    {
+        _context = context;
+        _hubContext = hubContext;
+        _cache = cache;
+        _logger = logger;
+    }
+
+    public async Task Consume(ConsumeContext<TransactionExecuted> context)
+    {
+        var message = context.Message;
+        _logger.LogInformation("Processing asynchronous balance update for Asset ID: {AssetId}, Ticker: {Ticker}", 
+            message.AssetId, message.Ticker);
+
+        // Fetch the target asset bucket database record
+        var asset = await _context.Assets
+            .FirstOrDefaultAsync(a => a.Id == message.AssetId);
+
+        // Fetch the target asset bucket database record that was already finalized by the TransactionManager
+        if (asset == null)
+        {
+            _logger.LogWarning("Asset record {AssetId} not found during event reconciliation lifecycle.", message.AssetId);
+
+            return;
+        }
+
+        // We are now removing the transaction mutations and saving 
+        // here because TransactonManager is already doing it. 
+
+        _logger.LogInformation("Successfully finalized eventual consistency loop. New Balance for {Ticker}: {NewBalance}", 
+            asset.Ticker, asset.Balance);
+
+        try
+        {
+            // FIX: CACHE INVALIDATION LAYER
+            // Every time a consumer updates the database out-of-band, we MUST clear 
+            // the cache key so the next read path fetches the fresh balance totals!
+            string cacheKey = $"user_wallets_{message.UserId}";
+            await _cache.RemoveAsync(cacheKey);
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Redis connection failed during out-of-band cache invalidation for key: user_wallets_{UserId}. Proceeding to real-time streams.", message.UserId);
+        }
+        
+        // SignalR WebSocket streaming path:
+        // We target only the Group named after the user's explicit ID.
+        // This guarantees absolute security -- User A can never sniff User B's balance streams.
+        // Notify the frontend client reactively via the live SignalR backplane stream
+        if (!string.IsNullOrEmpty(message.UserId))
+        {
+            await _hubContext.Clients
+                .Group(message.UserId)
+                .BalanceUpdated(asset.Id, asset.Balance);
+                
+            _logger.LogInformation("Real-time balance notification pushed securely to User Group: {UserId}", message.UserId);
+        }
+    }
+}

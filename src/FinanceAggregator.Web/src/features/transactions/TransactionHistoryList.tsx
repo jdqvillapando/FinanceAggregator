@@ -1,0 +1,68 @@
+import { useEffect } from 'react';
+
+import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
+import { setTransactions, setLoading, selectTransactionsByAsset } from './reducers/transactionSlice';
+
+import agent from '../../app/api/agent';
+import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
+
+
+interface Props {
+    walletId: string;
+    assetId: string;
+    ticker: string;
+};
+
+const TransactionHistoryList = ({ walletId, assetId, ticker }: Props) => {
+    const dispatch = useAppDispatch();
+    const { loading } = useAppSelector(state => state.transactions);
+    // THE FIX: Use the memoized selector and pass state along with the parameter dependency
+    const transactions = useAppSelector(state => selectTransactionsByAsset(state, assetId) || []);
+
+    useEffect(() => {
+        if (!walletId || !ticker || !assetId) return;
+
+        dispatch(setLoading(true));
+        agent.transactionService
+            .getTransactionHistory(walletId, ticker)
+            .then(response => {
+                if (response.isSuccess) {
+                    dispatch(setTransactions({ assetId, transactions: response.data }));
+                }
+            })
+            .finally(() => dispatch(setLoading(false)));
+    }, [walletId, assetId, ticker, dispatch]);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-4 space-y-2">
+            {
+                transactions.length > 0 ? transactions.map(tr => (
+                    <div key={tr.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div>
+                            <p className="text-sm font-bold text-slate-700">{tr.description}</p>
+                            <p className="text-[10px] text-slate-400">{new Date(tr.timestamp).toLocaleString()}</p>
+                        </div>
+                        <div className={`font-black text-sm ${tr.amount > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                            {/* We use the ticker passed as a prop since it's an asset-specific history */}
+                            {formatAssetDisplay(ticker, tr.amount)}
+                        </div>
+                    </div>
+                )) :
+                (
+                    <p className="text-xs text-slate-400 italic">No transactions found for this asset.</p>
+                )
+            }
+        </div>
+    );
+};
+
+
+export default TransactionHistoryList;

@@ -1,0 +1,162 @@
+services:
+  # =======================================================================
+  # INFRASTRUCTURE TIER
+  # =======================================================================
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: fa_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=faadmin
+      - POSTGRES_PASSWORD=Ladmin01!
+      - POSTGRES_DB=fadb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_master_data:/var/lib/postgresql/data
+    # This tells Docker how to test if the database inside is actually ready for traffic
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faadmin -d fadb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+     - finance_network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: fa_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - finance_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: fa_redis
+    restart: unless-stopped
+    ports:
+      - "5207:6379" # Maps your appsettings port 5207 straight to internal 6379
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - finance_network
+
+  # =======================================================================
+  # APPLICATION SERVICES TIER (.NET 10 Microservices)
+  # =======================================================================
+  identity-service:
+    build:
+      context: ./src/IdentityService
+      dockerfile: Dockerfile
+    container_name: fa_identity
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5205 # Binds to internal container port 5205
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=identity_schema
+      - RabbitMQ__Host=rabbitmq
+    # UPDATED: Enforces that postgres-db must pass its health check first
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - finance_network
+
+  wallet-service:
+    build:
+      context: ./src/WalletService
+      dockerfile: Dockerfile
+    container_name: fa_wallet
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5202 # Binds to internal container port 5202
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=wallet_schema
+      - Redis__Host=redis
+      - RabbitMQ__Host=rabbitmq
+    # UPDATED: Enforces that postgres-db must pass its health check first
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - finance_network
+
+  yarp-gateway:
+    build:
+      context: ./src/YarpGateway
+      dockerfile: Dockerfile
+    container_name: fa_gateway
+    restart: unless-stopped
+    ports:
+      - "5153:5153" # EXPOSED: Maps host port 5153 straight to container internal port 5153 for frontend (React)
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5153 # App listens on port 5153 inside the container
+    command: >
+      dotnet YarpGateway.dll 
+      --ReverseProxy:Clusters:identity-cluster:Destinations:destination1:Address=http://identity-service:5205
+      --ReverseProxy:Clusters:wallet-cluster:Destinations:destination1:Address=http://wallet-service:5202
+    depends_on:
+      - identity-service
+      - wallet-service
+    networks:
+      - finance_network
+    
+  # =======================================================================
+  # ASYNCHRONOUS NOTIFICATION WORKER SERVICE
+  # =======================================================================
+  notification-service:
+    build:
+      context: ./src/NotificationService
+      dockerfile: Dockerfile
+    container_name: fa_notification
+    restart: unless-stopped
+    environment:
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - finance_network
+
+  # =======================================================================
+  # FRONTEND USER PORTAL CLIENT
+  # =======================================================================
+  frontend-web:
+    build:
+      context: ./src/FinanceAggregator.Web
+      dockerfile: Dockerfile
+    container_name: fa_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # Maps local host port 3000 cleanly to internal Nginx container port 80
+    depends_on:
+      - yarp-gateway # Guarantees routing definitions and auth pipes are active before UI renders
+    networks:
+      - finance_network    
+
+# =======================================================================
+# PERSISTENT DATA TIERS & LOGICAL ISOLATION BRIDGES
+# =======================================================================
+volumes:
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_master_data:
+
+networks:
+  finance_network:
+    driver: bridge
