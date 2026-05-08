@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WalletService.Data;
@@ -21,20 +22,34 @@ public class WalletsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Wallet>>> GetWallets()
     {
+        // Extract ID from the JWT 'sub' claim
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         // We include Assets so you can see the related data in one call
-        return await _context.Wallets.Include(w => w.Assets).ToListAsync();
+        var userWallets = await _context.Wallets
+            .Where(w => w.UserId == userId)
+            .Include(i => i.Assets)
+            .ToListAsync();
+
+        return Ok(userWallets);
     }
 
     // POST: api/v1/wallets
     [HttpPost]
     public async Task<ActionResult<Wallet>> CreateWallet(CreateWalletDto walletDto)
     {
+        // Get the real ID from the token (the source of truth)
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        // Create the wallet object
         var wallet = new Wallet
         {
             Id = Guid.NewGuid(),
             Name = walletDto.Name,
-            UserId = "demo-user-123", // Temporary until we build IdentityService
-            CreatedAt = DateTime.UtcNow
+            UserId = userId, // Forced ownership
+            CreatedAt = DateTime.UtcNow,
+            Assets = new List<Asset>()
         };
 
         _context.Wallets.Add(wallet);
