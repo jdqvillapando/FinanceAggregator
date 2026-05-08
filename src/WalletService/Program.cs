@@ -7,6 +7,7 @@ using FluentValidation.AspNetCore;
 using WalletService.Data;
 using WalletService.Validators;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Register DbContext
@@ -43,11 +44,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(); // 🎯 This provides the visual interface
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();

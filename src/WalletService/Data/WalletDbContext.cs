@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WalletService.Models;
 
+
 namespace WalletService.Data;
 
 public class WalletDbContext : DbContext

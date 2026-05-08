@@ -2,8 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WalletService.Data;
-using WalletService.Models;
 using WalletService.Dtos;
+using WalletService.Models;
+
 
 namespace WalletService.Controllers;
 
@@ -56,5 +57,63 @@ public class WalletsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetWallets), new { id = wallet.Id }, wallet);
+    }
+
+    // POST: api/v1/wallets/{walletId}/assets
+    [HttpPost("{walletId}/assets")]
+    public async Task<IActionResult> AddAssetToWallet(Guid walletId, AddAssetDto assetDto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Find the wallet AND verify ownership
+        var wallet = await _context.Wallets
+            .Include(w => w.Assets)
+            .FirstOrDefaultAsync(w => w.Id == walletId && w.UserId == userId);
+
+        if (wallet == null) return NotFound("Wallet not found or you don't have access.");
+
+        // Check if asset already exists (don't want two BTC accounts in one wallet)
+        if (wallet.Assets.Any(a => a.Ticker.ToUpper() == assetDto.Ticker.ToUpper()))
+            return BadRequest("Asset already exists in this wallet.");
+
+        // Add the asset
+        var asset = new Asset
+        {
+            Id = Guid.NewGuid(),
+            Ticker = assetDto.Ticker.ToUpper(),
+            Balance = assetDto.InitialBalance,
+            WalletId = walletId
+        };
+
+        _context.Assets.Add(asset);
+        await _context.SaveChangesAsync();
+
+        return Ok(asset);
+    }
+
+    // DELETE: api/v1/wallets/{walletId}/assets/{ticker}
+    [HttpDelete("{walletId}/assets/{ticker}")]
+    public async Task<IActionResult> RemoveAsset(Guid walletId, string ticker)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Verify the Wallet belongs to the user first
+        var walletExists = await _context.Wallets
+            .AnyAsync(w => w.Id == walletId && w.UserId == userId);
+
+        if (!walletExists) 
+            return NotFound("Wallet not found or access denied.");
+
+        // Now find the asset within that specific wallet
+        var asset = await _context.Assets.FirstOrDefaultAsync(a => a.WalletId == walletId && a.Ticker.ToUpper() == ticker.ToUpper());
+
+        if (asset == null) 
+            return NotFound("Asset not found in this wallet.");
+
+        // Remove and save
+        _context.Assets.Remove(asset);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }

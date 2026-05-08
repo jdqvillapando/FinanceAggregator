@@ -1,6 +1,7 @@
 using FluentValidation;
 using WalletService.Dtos;
 
+
 namespace WalletService.Validators;
 
 public class CreateWalletDtoValidator : AbstractValidator<CreateWalletDto>
