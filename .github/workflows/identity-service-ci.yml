@@ -1,14 +1,14 @@
-name: YARP Gateway CI
+name: Identity Service CI
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'src/YarpGateway/**' # Only run if the Gateway changes
+      - 'src/IdentityService/**' # Trigger only for Identity Service changes
   pull_request:
     branches: [ main ]
     paths:
-      - 'src/YarpGateway/**'
+      - 'src/IdentityService/**'
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
         dotnet-version: '8.0.x' 
 
     - name: Restore dependencies
-      run: dotnet restore src/YarpGateway/YarpGateway.csproj
+      run: dotnet restore src/IdentityService/IdentityService.csproj
 
     - name: Build
-      run: dotnet build src/YarpGateway/YarpGateway.csproj --no-restore --configuration Release
+      run: dotnet build src/IdentityService/IdentityService.csproj --no-restore --configuration Release

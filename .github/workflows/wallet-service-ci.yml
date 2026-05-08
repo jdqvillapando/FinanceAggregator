@@ -23,9 +23,9 @@ jobs:
         dotnet-version: '8.0.x' 
 
     - name: Restore dependencies
-      run: dotnet restore src/WalletService.csproj
+      run: dotnet restore src/WalletService/WalletService.csproj
 
     - name: Build
-      run: dotnet build src/WalletService.csproj --no-restore --configuration Release
+      run: dotnet build src/WalletService/WalletService.csproj --no-restore --configuration Release
 
     # We will add a 'Run Tests' step here once we create our test project!
