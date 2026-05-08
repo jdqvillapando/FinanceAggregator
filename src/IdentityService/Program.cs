@@ -4,6 +4,8 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using IdentityService.Data;
 using IdentityService.Models;
+using IdentityService.Services;
+using IdentityService.Settings;
 using IdentityService.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 // Setup FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
+
+// Bind JwtSettings section to the class
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+
+// Bind token service
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Add other services to the container
 builder.Services.AddControllers();
