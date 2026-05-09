@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using WalletService.Data;
+using WalletService.Middleware;
 using WalletService.Validators;
 
 
@@ -43,6 +44,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Configure "catch-all" net that handles any unexpected errors
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

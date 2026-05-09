@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WalletService.Common;
 using WalletService.Data;
 using WalletService.Dtos;
 using WalletService.Models;
@@ -21,7 +22,7 @@ public class WalletsController : ControllerBase
 
     // GET: api/v1/wallets
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Wallet>>> GetWallets()
+    public async Task<ActionResult<Result<IEnumerable<Wallet>>>> GetWallets()
     {
         // Extract ID from the JWT 'sub' claim
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -32,16 +33,16 @@ public class WalletsController : ControllerBase
             .Include(i => i.Assets)
             .ToListAsync();
 
-        return Ok(userWallets);
+        return Ok(Result<IEnumerable<Wallet>>.Success(userWallets));
     }
 
     // POST: api/v1/wallets
     [HttpPost]
-    public async Task<ActionResult<Wallet>> CreateWallet(CreateWalletDto walletDto)
+    public async Task<ActionResult<Result<Wallet>>> CreateWallet(CreateWalletDto walletDto)
     {
         // Get the real ID from the token (the source of truth)
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(Result<Wallet>.Failure("User not identified."));
 
         // Create the wallet object
         var wallet = new Wallet
@@ -56,12 +57,12 @@ public class WalletsController : ControllerBase
         _context.Wallets.Add(wallet);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetWallets), new { id = wallet.Id }, wallet);
+        return CreatedAtAction(nameof(GetWallets), new { id = wallet.Id }, Result<Wallet>.Success(wallet));
     }
 
     // POST: api/v1/wallets/{walletId}/assets
     [HttpPost("{walletId}/assets")]
-    public async Task<IActionResult> AddAssetToWallet(Guid walletId, AddAssetDto assetDto)
+    public async Task<ActionResult<Result<Asset>>> AddAssetToWallet(Guid walletId, AddAssetDto assetDto)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -70,11 +71,11 @@ public class WalletsController : ControllerBase
             .Include(i => i.Assets)
             .FirstOrDefaultAsync(f => f.Id == walletId && f.UserId == userId);
 
-        if (wallet == null) return NotFound("Wallet not found or you don't have access.");
+        if (wallet == null) return NotFound(Result<Asset>.Failure("Wallet not found or you don't have access."));
 
         // Check if asset already exists (don't want two BTC accounts in one wallet)
         if (wallet.Assets.Any(a => a.Ticker.ToUpper() == assetDto.Ticker.ToUpper()))
-            return BadRequest("Asset already exists in this wallet.");
+            return BadRequest(Result<Asset>.Failure("Asset already exists in this wallet."));
 
         // Add the asset
         var asset = new Asset
@@ -88,12 +89,12 @@ public class WalletsController : ControllerBase
         _context.Assets.Add(asset);
         await _context.SaveChangesAsync();
 
-        return Ok(asset);
+        return Ok(Result<Asset>.Success(asset));
     }
 
     // DELETE: api/v1/wallets/{walletId}/assets/{ticker}
     [HttpDelete("{walletId}/assets/{ticker}")]
-    public async Task<IActionResult> RemoveAsset(Guid walletId, string ticker)
+    public async Task<ActionResult<Result<string>>> RemoveAsset(Guid walletId, string ticker)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -102,26 +103,26 @@ public class WalletsController : ControllerBase
             .AnyAsync(a => a.Id == walletId && a.UserId == userId);
 
         if (!walletExists) 
-            return NotFound("Wallet not found or you don't have access.");
+            return NotFound(Result<string>.Failure("Wallet not found or you don't have access."));
 
         // Now find the asset within that specific wallet
         var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
 
         if (asset == null) 
-            return NotFound("Asset not found in this wallet.");
+            return NotFound(Result<string>.Failure("Asset not found in this wallet."));
 
         // Remove and save
         _context.Assets.Remove(asset);
         await _context.SaveChangesAsync();
 
-        return NoContent();
+        return Ok(Result<string>.Success("Asset removed successfully."));
     }
 
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/deposit
     [HttpPost("{walletId}/assets/{ticker}/deposit")]
-    public async Task<IActionResult> Deposit(Guid walletId, string ticker, [FromBody] decimal amount)
+    public async Task<ActionResult<Result<TransactionResponseDto>>> Deposit(Guid walletId, string ticker, [FromBody] decimal amount)
     {
-        if (amount <= 0) return BadRequest("Amount must be positive.");
+        if (amount <= 0) return BadRequest(Result<TransactionResponseDto>.Failure("Amount must be positive."));
         
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -130,13 +131,13 @@ public class WalletsController : ControllerBase
             .AnyAsync(a => a.Id == walletId && a.UserId == userId);
 
         if (!walletExists) 
-            return NotFound("Wallet not found or you don't have access.");
+            return NotFound(Result<TransactionResponseDto>.Failure("Wallet not found or you don't have access."));
 
         // Now find the asset inside that specific wallet
         var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
 
         if (asset == null) 
-            return NotFound("Asset not found in this wallet.");
+            return NotFound(Result<TransactionResponseDto>.Failure("Asset not found in this wallet."));
 
         // Update Balance
         asset.Balance += amount;
@@ -155,17 +156,22 @@ public class WalletsController : ControllerBase
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
 
-        return Ok(new {
+        var response = new TransactionResponseDto
+        {
+            Ticker = asset.Ticker,
             NewBalance = asset.Balance,
-            TransactionId = transaction.Id
-        });
+            TransactionId = transaction.Id,
+            Timestamp = transaction.Timestamp
+        };
+
+        return Ok(Result<TransactionResponseDto>.Success(response));
     }
 
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/withdraw
     [HttpPost("{walletId}/assets/{ticker}/withdraw")]
-    public async Task<IActionResult> Withdraw(Guid walletId, string ticker, [FromBody] decimal amount)
+    public async Task<ActionResult<Result<TransactionResponseDto>>> Withdraw(Guid walletId, string ticker, [FromBody] decimal amount)
     {
-        if (amount <= 0) return BadRequest("Amount must be positive.");
+        if (amount <= 0) return BadRequest(Result<TransactionResponseDto>.Failure("Amount must be positive."));
         
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -174,18 +180,18 @@ public class WalletsController : ControllerBase
             .AnyAsync(a => a.Id == walletId && a.UserId == userId);
 
         if (!walletExists) 
-            return NotFound("Wallet not found or you don't have access.");
+            return NotFound(Result<TransactionResponseDto>.Failure("Wallet not found or you don't have access."));
 
         // Find the asset
         var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
 
         if (asset == null) 
-            return NotFound("Asset not found in this wallet.");
+            return NotFound(Result<TransactionResponseDto>.Failure("Asset not found in this wallet."));
 
         // Business Rule: Check for sufficient funds
         if (asset.Balance < amount)
         {
-            return BadRequest($"Insufficient funds. Current balance: {asset.Balance} {ticker.ToUpper()}.");
+            return BadRequest(Result<TransactionResponseDto>.Failure($"Insufficient funds. Current balance: {asset.Balance} {ticker.ToUpper()}."));
         }
 
         // Update Balance
@@ -205,16 +211,20 @@ public class WalletsController : ControllerBase
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
 
-        return Ok(new { 
-            Ticker = asset.Ticker, 
-            NewBalance = asset.Balance, 
-            TransactionId = transaction.Id 
-        });
+        var response = new TransactionResponseDto
+        {
+            Ticker = asset.Ticker,
+            NewBalance = asset.Balance,
+            TransactionId = transaction.Id,
+            Timestamp = transaction.Timestamp
+        };
+
+        return Ok(Result<TransactionResponseDto>.Success(response));
     }
 
     // GET: api/v1/wallets/{walletId}/assets/{ticker}/transactions
     [HttpGet("{walletId}/assets/{ticker}/transactions")]
-    public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactionHistory(Guid walletId, string ticker)
+    public async Task<ActionResult<Result<IEnumerable<Transaction>>>> GetTransactionHistory(Guid walletId, string ticker)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -222,7 +232,7 @@ public class WalletsController : ControllerBase
         var walletExists = await _context.Wallets
             .AnyAsync(a => a.Id == walletId && a.UserId == userId);
 
-        if (!walletExists) return NotFound("Wallet not found.");
+        if (!walletExists) return NotFound(Result<IEnumerable<Transaction>>.Failure("Wallet not found."));
 
         // Fetch transactions for the asset within that wallet
         var transactions = await _context.Transactions
@@ -232,6 +242,6 @@ public class WalletsController : ControllerBase
             .OrderByDescending(o => o.Timestamp) // Newest first
             .ToListAsync();
 
-        return Ok(transactions);
+        return Ok(Result<IEnumerable<Transaction>>.Success(transactions));
     }
 }
