@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MassTransit;
+using Contracts;
 using IdentityService.Common;
 using IdentityService.Dtos;
 using IdentityService.Models;
@@ -14,12 +16,14 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenService tokenService)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenService tokenService, IPublishEndpoint publishEndpoint)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
+        _publishEndpoint = publishEndpoint;
     }
 
     [HttpPost("register")]
@@ -28,13 +32,22 @@ public class AuthController : ControllerBase
         var user = new ApplicationUser 
         { 
             UserName = registerDto.Username, 
-            Email = registerDto.Email 
+            Email = registerDto.Email,
+            FullName = registerDto.FullName!
         };
 
         var result = await _userManager.CreateAsync(user, registerDto.Password);
 
         if (result.Succeeded)
         {
+            // MassTransit does magic here
+            await _publishEndpoint.Publish<UserCreated>(new
+            {
+                UserId = user.Id,
+                Email = user.Email!,
+                FullName = user.FullName!
+            });
+
             return Ok(Result<string>.Success("User registered successfully"));
         }
 

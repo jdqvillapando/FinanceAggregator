@@ -4,5 +4,5 @@ namespace IdentityService.Models;
 
 public class ApplicationUser : IdentityUser
 {
-    // You can add custom fields here later, like "FullName"
+    public string FullName { get; set; } = string.Empty;
 }
