@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using MassTransit;
+using WalletService.Consumers;
 using WalletService.Data;
 using WalletService.Middleware;
 using WalletService.Validators;
@@ -38,6 +40,29 @@ builder.Services.AddAuthorization();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateWalletDtoValidator>();
 
+// Bind MassTransit
+builder.Services.AddMassTransit(x =>
+{
+    // Add the consumer
+    x.AddConsumer<UserCreatedConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host("localhost", "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+
+        // Configure the "Inbox" (Queue) for this service
+        cfg.ReceiveEndpoint("user-created-queue", e =>
+        {
+            // Connect the consumer to this queue
+            e.ConfigureConsumer<UserCreatedConsumer>(context);
+        });
+    });
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -55,7 +80,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS if we are not in development to avoid the port warning
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
