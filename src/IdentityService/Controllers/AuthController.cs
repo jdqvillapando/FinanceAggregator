@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using IdentityService.Models;
+using IdentityService.Common;
 using IdentityService.Dtos;
+using IdentityService.Models;
 using IdentityService.Services;
 
 namespace IdentityService.Controllers;
@@ -22,7 +23,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterDto registerDto)
+    public async Task<ActionResult<string>> Register(RegisterDto registerDto)
     {
         var user = new ApplicationUser 
         { 
@@ -34,19 +35,22 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            return Ok("User registered successfully");
+            return Ok(Result<string>.Success("User registered successfully"));
         }
 
-        return BadRequest(result.Errors);
+        // Join all Identity errors into a single string for the Result envelope
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+
+        return BadRequest(Result<string>.Failure(errors));
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginDto loginDto)
+    public async Task<ActionResult<Result<AuthResponseDto>>> Login(LoginDto loginDto)
     {
         // Find the user by username
         var user = await _userManager.FindByNameAsync(loginDto.Username);
         // If user doesn't exist, stop here
-        if (user == null) return Unauthorized("Invalid username");
+        if (user == null) return Unauthorized(Result<AuthResponseDto>.Failure("Invalid username"));
 
         // Check if the password is correct (false, false = don't lockout on failure)
         var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
@@ -54,13 +58,16 @@ public class AuthController : ControllerBase
         // If password is correct, generate and return the token
         if (result.Succeeded)
         {
-            return Ok(new {
-                Token = _tokenService.CreateToken(user),
-                Username = user.UserName
-            });
+            var response = new AuthResponseDto
+            {
+              Token = _tokenService.CreateToken(user),
+              Username = user.UserName!
+            };
+            
+            return Ok(Result<AuthResponseDto>.Success(response));
         }
 
         // If password fails
-        return Unauthorized("Invalid password");
+        return Unauthorized(Result<AuthResponseDto>.Failure("Invalid password"));
     }
 }
