@@ -1,29 +1,20 @@
 import { useState } from 'react';
+
+import { useAppSelector, useAppDispatch } from '../store/configureStore';
+import { signOut } from '../../features/auth/reducers/authSlice';
+
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
 import Dashboard from '../../features/wallets/Dashboard';
-import type { User } from '../models/user';
+
 import './App.css'
 
 
 const App = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  // Use a "Lazy Initializer" function inside useState
-  const [user, setUser] = useState<User | null>(() => {
-    const savedToken = localStorage.getItem('jwt');
+  const { user } = useAppSelector(state => state.auth);
+  const dispatch = useAppDispatch();
 
-    if (savedToken) {
-      // Return the initial value directly during the first render
-      return { username: 'User', token: savedToken } as User;
-    }
-    
-    return null;
-  });
-
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    setUser(null);
-  };
+  const [isLoginView, setIsLoginView] = useState(true);
 
   return (
     <>
@@ -32,36 +23,36 @@ const App = () => {
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <h1 className="text-xl font-black text-indigo-600 tracking-tighter">FINANCE.AGGREGATOR</h1>
             <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">v1.0 Microservices</span>
-            {user ? (
-              <>
-                <span className="text-sm font-medium text-slate-600">Hi, {user.username}</span>
+            {
+              user ?
+              (
+                <>
+                  <span className="text-sm font-medium text-slate-600">Hi, {user.username}</span>
+                  <button 
+                    onClick={() => dispatch(signOut())}
+                    className="text-xs bg-slate-200 hover:bg-rose-100 hover:text-rose-600 px-3 py-1 rounded transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) :
+              (
                 <button 
-                  onClick={handleLogout}
-                  className="text-xs bg-slate-200 hover:bg-rose-100 hover:text-rose-600 px-3 py-1 rounded transition-colors"
+                  onClick={() => setIsLoginView(!isLoginView)}
+                  className="text-sm font-bold text-indigo-600 hover:underline"
                 >
-                  Logout
+                  {isLoginView ? "Create Account" : "Login"}
                 </button>
-              </>
-            ) : (
-              <button 
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm font-bold text-indigo-600 hover:underline"
-              >
-                {isLogin ? "Create Account" : "Login"}
-              </button>
-            )}
-
+              )
+            }
           </div>
         </nav>
 
         <main className="container mx-auto px-4">
           {
             user ? 
-              <Dashboard /> : 
-              (isLogin ?
-                <Login onLoginSuccess={setUser} /> :
-                <Register />
-              )
+            <Dashboard /> : 
+            (isLoginView ? <Login /> : <Register />)
           }
         </main>
       </div>

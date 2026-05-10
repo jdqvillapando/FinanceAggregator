@@ -1,14 +1,17 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+
+import { useAppDispatch } from '../../app/store/configureStore';
+import { setAuthUser } from './reducers/authSlice';
+
 import agent from '../../app/api/agent';
-import type { User, UserFormValues } from '../../app/models/user';
+import type { UserFormValues } from '../../app/models/user';
 
-interface Props {
-    onLoginSuccess: (user: User) => void;
-}
 
-const Login = ({ onLoginSuccess }: Props) => {
+const Login = () => {
+    const dispatch = useAppDispatch();
+
     const [status, setStatus] = useState<string>('');
     const {
         register,
@@ -22,17 +25,13 @@ const Login = ({ onLoginSuccess }: Props) => {
             const response = await agent.authService.login(data);
             // On success, we'll get a User object with a Token
             setStatus(`Welcome back, ${response.data.username}!`);
-            console.log("JWT Token:", response.data.token);
-            
-            // Temporary: Save token to localStorage until we implement Redux
-            localStorage.setItem('jwt', response.data.token);
-            
-            // Trigger the callback to show the Dashboard!
-            onLoginSuccess(response.data);
-        } catch (err: unknown) {
+            dispatch(setAuthUser(response.data));
+        }
+        catch (err: unknown) {
             if (axios.isAxiosError(err)) {
                 setStatus(err.response?.data?.message || 'Login failed');
-            } else {
+            }
+            else {
                 setStatus('An unexpected error occurred');
             }
         }
