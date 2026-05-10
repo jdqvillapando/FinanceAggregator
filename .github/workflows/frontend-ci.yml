@@ -1,0 +1,33 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/FinanceAggregator.Web/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'src/FinanceAggregator.Web/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'src/FinanceAggregator.Web/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: src/FinanceAggregator.Web
+
+    - name: Build project
+      run: npm run build
+      working-directory: src/FinanceAggregator.Web
