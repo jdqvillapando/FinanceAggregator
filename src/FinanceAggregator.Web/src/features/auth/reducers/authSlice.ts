@@ -1,10 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { User } from '../../../app/models/user';
+import type { AuthResponse } from '../../../app/models/user';
 
 
 interface AuthState {
-    user: User | null;
+    user: AuthResponse | null;
 }
 
 const initialState: AuthState = {
@@ -12,7 +12,7 @@ const initialState: AuthState = {
         {
             username: 'User',
             token: localStorage.getItem('jwt')!
-        } as User :
+        } as AuthResponse :
         null
 };
 
@@ -20,7 +20,7 @@ export const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
-        setAuthUser: (state, action: PayloadAction<User>) => {
+        setAuthUser: (state, action: PayloadAction<AuthResponse>) => {
             state.user = action.payload;
             // Persistence happens here, once, globally.
             localStorage.setItem('jwt', action.payload.token);

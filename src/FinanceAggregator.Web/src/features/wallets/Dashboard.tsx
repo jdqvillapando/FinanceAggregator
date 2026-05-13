@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useAppSelector, useAppDispatch } from '../../app/store/configureStore';
 import { setWallets, setLoading } from './reducers/walletSlice';
@@ -6,10 +6,24 @@ import { setWallets, setLoading } from './reducers/walletSlice';
 import agent from '../../app/api/agent';
 import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
 
+import { TransactionType } from '../../app/models/transaction';
+import TransactionModal from '../transactions/TransactionModal';
+import TransactionHistoryList from '../transactions/TransactionHistoryList';
+
 
 const Dashboard = () => {
     const dispatch = useAppDispatch();
     const { wallets, loading } = useAppSelector(state => state.wallets);
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedAsset, setSelectedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null);
+    const [modalType, setModalType] = useState<TransactionType>(TransactionType.Deposit);
+
+    const openModal = (walletId: string, assetId: string, ticker: string, type: TransactionType) => {
+        setSelectedAsset({ walletId, assetId, ticker });
+        setModalType(type);
+        setIsModalOpen(true);
+    };
 
     useEffect(() => {
         dispatch(setLoading(true));
@@ -48,18 +62,35 @@ const Dashboard = () => {
                                     wallet.assets.length > 0 ?
                                     (
                                         wallet.assets.map(asset => (
-                                            <div key={asset.id} className="p-6 rounded-2xl bg-white border border-slate-100 hover:border-indigo-500 transition-all group">
+                                            <div key={asset.id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                                                 <div className="flex justify-between items-center mb-4">
-                                                    <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-black">
-                                                        {asset.ticker}
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{asset.ticker}</h4>
+                                                        <p className="text-2xl font-black text-slate-700">{formatAssetDisplay(asset.ticker, asset.balance)}</p>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                                        Confirmed Balance
+                                                    
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={() => openModal(wallet.id, asset.id, asset.ticker, TransactionType.Deposit)}
+                                                            className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-colors"
+                                                            title="Deposit"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => openModal(wallet.id, asset.id, asset.ticker, TransactionType.Withdrawal)}
+                                                            className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-colors"
+                                                            title="Withdraw"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="text-2xl font-bold text-slate-800">
-                                                    { formatAssetDisplay(asset.ticker, asset.balance) }
-                                                </div>
+                                                <TransactionHistoryList walletId={wallet.id} assetId={asset.id} ticker={asset.ticker} />
                                             </div>
                                         ))
                                     ) :
@@ -86,6 +117,17 @@ const Dashboard = () => {
                     
                 }
             </div>
+            {
+                isModalOpen && selectedAsset && (
+                    <TransactionModal 
+                        walletId={selectedAsset.walletId}
+                        assetId={selectedAsset.assetId}
+                        ticker={selectedAsset.ticker}
+                        type={modalType}
+                        onClose={() => setIsModalOpen(false)}
+                    />
+                )
+            }
         </div>
     );
 };
