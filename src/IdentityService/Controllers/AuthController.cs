@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MassTransit;
@@ -82,5 +84,30 @@ public class AuthController : ControllerBase
 
         // If password fails
         return Unauthorized(Result<AuthResponseDto>.Failure("Invalid password"));
+    }
+
+    [Authorize]
+    [HttpGet("currentUser")]
+    public async Task<ActionResult<Result<AuthResponseDto>>> CurrentUser()
+    {
+        var username = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("unique_name");
+
+        // If for some reason the token is valid but the claim is missing
+        if (string.IsNullOrEmpty(username)) 
+            return Unauthorized(Result<AuthResponseDto>.Failure("Invalid token claims"));
+
+        var user = await _userManager.FindByNameAsync(username);
+
+        if (user == null) 
+            return Unauthorized(Result<AuthResponseDto>.Failure("User not found"));
+
+        return Ok(Result<AuthResponseDto>.Success(
+            new AuthResponseDto
+            {
+                // We return a fresh token and the username to refresh the frontend state
+                Token = _tokenService.CreateToken(user),
+                Username = user.UserName!
+            }
+        ));
     }
 }

@@ -1,5 +1,8 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using MassTransit;
@@ -25,8 +28,40 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
-// Bind JwtSettings section to the class
+// Create a local instance of the JWT settings class
+var jwtSettings = new JwtSettings();
+
+// Bind the appsettings.json section directly into that instance
+builder.Configuration.GetSection("JwtSettings").Bind(jwtSettings);
+// Keep the DI configuration for the TokenService intact
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+// Bind JwtSettings section to the class
+// Configure authentication using the explicitly bound object keys
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            // This guarantees the middleware uses the exact same key instance as TokenService
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            // Add this to ensure the claims match the TokenService logic
+            NameClaimType = "unique_name" 
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // Bind token service
 builder.Services.AddScoped<ITokenService, TokenService>();
