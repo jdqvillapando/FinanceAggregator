@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
-import { setTransactions, setLoading } from './reducers/transactionSlice';
+import { setTransactions, setLoading, selectTransactionsByAsset } from './reducers/transactionSlice';
 
 import agent from '../../app/api/agent';
 import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
@@ -16,8 +16,8 @@ interface Props {
 const TransactionHistoryList = ({ walletId, assetId, ticker }: Props) => {
     const dispatch = useAppDispatch();
     const { loading } = useAppSelector(state => state.transactions);
-    // Select ONLY the transactions for this specific assetId
-    const transactions = useAppSelector(state => state.transactions.transactionsByAsset[assetId] || []);
+    // THE FIX: Use the memoized selector and pass state along with the parameter dependency
+    const transactions = useAppSelector(state => selectTransactionsByAsset(state, assetId) || []);
 
     useEffect(() => {
         if (!walletId || !ticker || !assetId) return;

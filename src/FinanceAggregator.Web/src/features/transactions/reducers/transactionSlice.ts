@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 
+import type { RootState } from '../../../app/store/configureStore';
 import type { Transaction } from '../../../app/models/transaction';
 
 
@@ -39,6 +40,26 @@ export const transactionSlice = createSlice({
         }
     }
 });
+
+// ----------------------------------------------------------------
+// Fix for warning because of re-rendering TransactionHistoryList
+// ----------------------------------------------------------------
+// A simple lookup selector to grab the raw transactions map out of the store state
+const selectTransactionsByAssetMap = (state: RootState) => state.transactions.transactionsByAsset;
+
+// A factory or parameterized selector that returns a memoized array for a given assetId
+export const selectTransactionsByAsset = createSelector(
+    [
+        selectTransactionsByAssetMap,
+        // Pass a small inline selector to extract the input parameter argument safely
+        (_state: RootState, assetId: string) => assetId
+    ],
+    (transactionsMap, assetId) => {
+        // Redux Toolkit caches this array reference pointer. 
+        // If the transactions mapping dictionary has not mutated, it skips recalculation.
+        return transactionsMap[assetId] || []; 
+    }
+);
 
 
 export const { setTransactions, setLoading, addTransaction, clearTransactions } = transactionSlice.actions;

@@ -6,7 +6,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { setAuthUser } from './reducers/authSlice';
 
 import agent from '../../app/api/agent';
-import type { UserFormValues } from '../../app/models/user';
+import type { LoginCredentials } from '../../app/models/user';
 
 
 const Login = () => {
@@ -17,9 +17,9 @@ const Login = () => {
         register,
         handleSubmit,
         formState: { errors, isSubmitting }
-    } = useForm<UserFormValues>();
+    } = useForm<LoginCredentials>();
 
-    const onSubmit = async (data: UserFormValues) => {
+    const onSubmit = async (data: LoginCredentials) => {
         setStatus('Authenticating...');
         try {
             const response = await agent.authService.login(data);

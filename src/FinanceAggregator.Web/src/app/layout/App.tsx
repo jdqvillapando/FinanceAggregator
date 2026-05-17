@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-import { useAppSelector } from '../store/configureStore';
+import { useAppSelector, useAppDispatch } from '../store/configureStore';
+import { fetchCurrentUser } from '../../features/auth/reducers/authSlice';
 
 import Navbar from '../../common/components/Navbar';
 import Login from '../../features/auth/Login';
@@ -11,9 +12,20 @@ import './App.css'
 
 
 const App = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
 
   const [isLoginView, setIsLoginView] = useState(true);
+
+  useEffect(() => {
+    // Grab the current stored token from the standardized storage key
+    const token = localStorage.getItem('jwt');
+    
+    // If a token exists, quietly dispatch the background hydration thunk
+    if (token) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [dispatch]);
 
   return (
     <>

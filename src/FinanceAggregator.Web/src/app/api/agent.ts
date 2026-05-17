@@ -1,6 +1,6 @@
 import axios, { type AxiosResponse } from 'axios';
 import type { Result } from '../models/apiResponse';
-import type { AuthResponse, UserFormValues } from '../models/user';
+import type { AuthResponse, LoginCredentials, UserFormValues } from '../models/user';
 import type { Wallet } from '../models/wallet';
 import type { Transaction, TransactionResponse } from '../models/transaction';
 
@@ -25,7 +25,8 @@ const responseBody = <T>(response: AxiosResponse<T>) => response.data;
 
 const authService = {
     register: (values: UserFormValues) => api.post<Result<string>>('/auth/register', values).then(responseBody),
-    login: (values: UserFormValues) => api.post<Result<AuthResponse>>('/auth/login', values).then(responseBody),
+    login: (values: LoginCredentials) => api.post<Result<AuthResponse>>('/auth/login', values).then(responseBody),
+    getCurrentUser: () => api.get<Result<AuthResponse>>('/auth/currentUser').then(responseBody),
 };
 
 const walletService = {
