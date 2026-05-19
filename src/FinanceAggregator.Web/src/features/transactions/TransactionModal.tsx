@@ -1,18 +1,10 @@
-import axios from 'axios';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { useAppDispatch } from '../../app/store/configureStore';
-import { addTransaction } from '../../features/transactions/reducers/transactionSlice';
+import { postNewTransaction } from '../../features/transactions/reducers/transactionSlice';
 
-import agent from '../../app/api/agent';
-import type { Result } from '../../app/models/apiResponse';
-import {
-    TransactionType,
-    type Transaction,
-    type TransactionFormValues,
-    type TransactionResponse
-} from '../../app/models/transaction';
+import { TransactionType, type TransactionFormValues } from '../../app/models/transaction';
 
 
 interface Props {
@@ -26,90 +18,113 @@ interface Props {
 const TransactionModal = ({ walletId, assetId, ticker, type, onClose }: Props) => {
     const dispatch = useAppDispatch();
 
-    const { register, handleSubmit, formState: { errors } } = useForm<TransactionFormValues>({
-        defaultValues: { walletId: '', ticker: '', amount: undefined }
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting }
+    } = useForm<TransactionFormValues>({
+        defaultValues: {
+            amount: undefined,
+            // Pre-populate the transaction type based on component props
+            type: type,
+            description: ''
+        }
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
 
     const isDeposit = type === TransactionType.Deposit;
 
     const onSubmit = async (values: TransactionFormValues) => {
-        setIsSubmitting(true);
         setServerError(null);
 
-        try {
-            // Using the agent functions defined in agent.ts
-            const response: Result<TransactionResponse> = isDeposit ?
-                await agent.transactionService.deposit(walletId, ticker,values.amount) :
-                await agent.transactionService.withdraw(walletId, ticker, values.amount);
-            
-            if (response.isSuccess) {
-                const { transactionId, timestamp, ticker: responseTicker } = response.data;
-                
-                const addTransactionData: Transaction = {
-                    id: transactionId,
-                    assetId: assetId,
-                    amount: isDeposit ? +values.amount : -values.amount, 
+        // Package both the route context params and the form values object cleanly
+        const resultAction = await dispatch(
+            postNewTransaction({
+                walletId,
+                assetId,
+                ticker,
+                formValues: {
+                    amount: Number(values.amount),
+                    // Preserves the designated enum number context path
                     type: type,
-                    timestamp: timestamp,
-                    description: `${isDeposit ? 'Deposit' : 'Withdrawal'} of ${values.amount} ${responseTicker}`,
-                    asset: null
-                };
+                    description: values.description || (isDeposit ? 'Deposit' : 'Withdrawal')
+                }
+            })
+        );
 
-                dispatch(addTransaction(addTransactionData));
-                onClose();
-            }
+        if (postNewTransaction.fulfilled.match(resultAction)) {
+            // Operation succeeded, slice context updated automatically, close the window element
+            onClose(); 
         }
-        catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                setServerError(error.response?.data?.message || "Transaction failed.");
-            }
-            else {
-                setServerError("An unexpected error occurred.");
-            }
-        }
-        finally {
-            setIsSubmitting(false);
+        else {
+            // Set the error payload message sent back from our C# TransactionManager business rules
+            setServerError(resultAction.payload as string || 'An unexpected error occurred.');
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-                <div className={ `p-6 text-white ${ isDeposit ? 'bg-emerald-600' : 'bg-rose-600' }` }>
-                    <h3 className="text-xl font-bold">
-                        { isDeposit ? 'Deposit' : 'Withdraw' } { ticker }
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-slate-100 transform scale-100 transition-all duration-300">
+                
+                <div className="mb-6">
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">
+                        { isDeposit ? 'Deposit Funds' : 'Withdraw Funds' }
                     </h3>
-                    <p className="text-white/80 text-sm">Enter the amount to process the transaction.</p>
+                    <p className="text-sm text-slate-400 mt-1 font-medium">
+                        Asset Bucket: <span className="font-bold text-indigo-600">{ticker.toUpperCase()}</span>
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    
+                    {/* Amount Field Input */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                            Amount ({ ticker })
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            Transaction Amount
                         </label>
                         <input 
-                            autoFocus
                             type="number"
                             step="any"
                             placeholder="0.00"
-                            // Using register instead of value/onChange
-                            { ...register('amount', { required: 'Amount is required', min: 0.01, valueAsNumber: true }) }
-                            // This trick selects the text when the user clicks/tabs into the field
-                            onFocus={(e) => e.target.select()}
-                            className="w-full text-3xl font-black text-slate-700 outline-none border-b-2 border-slate-100 focus:border-indigo-500 transition-colors pb-2"
+                            {...register('amount', { 
+                                required: 'Amount is explicitly required.',
+                                min: { value: 0.01, message: 'Amount must be greater than zero.' }
+                            })}
+                            className="w-full text-2xl font-black text-slate-800 placeholder-slate-200 border-b-2 border-slate-100 focus:outline-none focus:border-indigo-500 transition-colors pb-2"
                         />
-                        { errors.amount && <p className="text-rose-500 text-xs mt-2 font-medium">{errors.amount.message || 'Invalid amount'}</p> }
-                        { serverError && <p className="text-rose-500 text-xs mt-2 font-bold">{serverError}</p> }
+                        { errors.amount && (
+                            <p className="text-rose-500 text-xs mt-2 font-medium">{errors.amount.message}</p>
+                        )}
                     </div>
 
-                    <div className="flex gap-3">
+                    {/* Description Field Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            Memo / Description (Optional)
+                        </label>
+                        <input 
+                            type="text"
+                            placeholder={isDeposit ? 'e.g., Funds deposit allocation' : 'e.g., Portfolio rebalancing transfer'}
+                            {...register('description', {
+                                maxLength: { value: 250, message: 'Description cannot exceed 250 characters.' }
+                            })}
+                            className="w-full text-sm font-medium text-slate-700 placeholder-slate-300 border-b border-slate-100 focus:outline-none focus:border-indigo-500 transition-colors pb-2"
+                        />
+                        { errors.description && (
+                            <p className="text-rose-500 text-xs mt-2 font-medium">{errors.description.message}</p>
+                        )}
+                        { serverError && (
+                            <p className="text-rose-500 text-xs mt-3 font-bold bg-rose-50 p-3 rounded-xl border border-rose-100">{serverError}</p>
+                        )}
+                    </div>
+
+                    {/* Dialog Actions Controls */}
+                    <div className="flex gap-3 pt-2">
                         <button 
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"
+                            className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors text-sm"
                         >
                             Cancel
                         </button>
@@ -117,8 +132,8 @@ const TransactionModal = ({ walletId, assetId, ticker, type, onClose }: Props) =
                             type="submit"
                             disabled={isSubmitting}
                             className={
-                                `flex-1 py-3 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 
-                                ${ isDeposit ? 'bg-emerald-600 shadow-emerald-200' : 'bg-rose-600 shadow-rose-200' }`
+                                `flex-1 py-3 rounded-xl font-bold text-white text-sm shadow-lg transition-all active:scale-95 disabled:opacity-50 
+                                ${ isDeposit ? 'bg-emerald-600 shadow-emerald-100' : 'bg-rose-600 shadow-rose-100' }`
                             }
                         >
                             { isSubmitting ? 'Processing...' : 'Confirm' }

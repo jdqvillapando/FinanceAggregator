@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import { addTransaction } from '../../transactions/reducers/transactionSlice';
+import { postNewTransaction } from '../../transactions/reducers/transactionSlice';
 
 import type { Wallet } from '../../../app/models/wallet';
 
@@ -28,10 +28,11 @@ export const walletSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(addTransaction, (state, action) => {
-            const { assetId, amount } = action.payload;
+        // Listen for the successful completion of the unified backend transaction mutation thunk
+        builder.addCase(postNewTransaction.fulfilled, (state, action) => {
+            const { assetId, transaction } = action.payload;
 
-            // Find the wallet that owns the asset
+            // Locate the wallet context that owns this asset bucket block
             const wallet = state.wallets.find(w => w.assets.some(a => a.id === assetId));
 
             if (wallet) {
@@ -39,7 +40,7 @@ export const walletSlice = createSlice({
 
                 if (asset) {
                     // Update the balance reactively based on the transaction ammount
-                    asset.balance += amount;
+                    asset.balance += transaction.amount;
                 }
             }
         });

@@ -17,13 +17,13 @@ export interface Transaction {
     type: TransactionType;
     timestamp: string;
     description: string;
-    asset: Asset | null; 
+    asset?: Asset | null; 
 }
 
 export interface TransactionFormValues {
-    walletId: string;
-    ticker: string;
     amount: number;
+    type: TransactionType;
+    description: string;
 }
 
 export interface TransactionResponse {
