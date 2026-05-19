@@ -8,6 +8,7 @@ using MassTransit;
 using WalletService.Consumers;
 using WalletService.Data;
 using WalletService.Middleware;
+using WalletService.Services;
 using WalletService.Validators;
 
 
@@ -35,6 +36,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Bind Transaction Manager
+builder.Services.AddScoped<ITransactionManager, TransactionManager>();
 
 // Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();

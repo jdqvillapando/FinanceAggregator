@@ -5,6 +5,7 @@ using WalletService.Common;
 using WalletService.Data;
 using WalletService.Dtos;
 using WalletService.Models;
+using WalletService.Services;
 
 
 namespace WalletService.Controllers;
@@ -14,10 +15,12 @@ namespace WalletService.Controllers;
 public class WalletsController : ControllerBase
 {
     private readonly WalletDbContext _context;
+    private readonly ITransactionManager _transactionManager;
 
-    public WalletsController(WalletDbContext context)
+    public WalletsController(WalletDbContext context, ITransactionManager transactionManager)
     {
         _context = context;
+        _transactionManager = transactionManager;
     }
 
     // GET: api/v1/wallets
@@ -119,6 +122,7 @@ public class WalletsController : ControllerBase
     }
 
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/deposit
+    [Obsolete("This endpoint is deprecated. Use POST api/v1/wallets/{walletId}/assets/{ticker}/transactions instead.", error: true)]
     [HttpPost("{walletId}/assets/{ticker}/deposit")]
     public async Task<ActionResult<Result<TransactionResponseDto>>> Deposit(Guid walletId, string ticker, [FromBody] decimal amount)
     {
@@ -168,6 +172,7 @@ public class WalletsController : ControllerBase
     }
 
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/withdraw
+    [Obsolete("This endpoint is deprecated. Use POST api/v1/wallets/{walletId}/assets/{ticker}/transactions instead.", error: true)]
     [HttpPost("{walletId}/assets/{ticker}/withdraw")]
     public async Task<ActionResult<Result<TransactionResponseDto>>> Withdraw(Guid walletId, string ticker, [FromBody] decimal amount)
     {
@@ -243,5 +248,24 @@ public class WalletsController : ControllerBase
             .ToListAsync();
 
         return Ok(Result<IEnumerable<Transaction>>.Success(transactions));
+    }
+
+    // POST: api/v1/wallets/{walletId}/assets/{ticker}/transactions
+    [HttpPost("{walletId}/assets/{ticker}/transactions")]
+    public async Task<ActionResult<Result<TransactionResponseDto>>> CreateTransaction(Guid walletId, string ticker, CreateTransactionDto dto)
+    {
+        // Extract ID from the JWT token (the strict client source of truth)
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        // Route execution over to our extracted transaction domain service engine
+        var result = await _transactionManager.ProcessTransactionAsync(walletId, ticker, dto, userId);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
     }
 }
