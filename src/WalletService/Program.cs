@@ -47,8 +47,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateWalletDtoValidator>()
 // Bind MassTransit
 builder.Services.AddMassTransit(x =>
 {
-    // Add the consumer
+    // Add the consumer(s)
     x.AddConsumer<UserCreatedConsumer>();
+    x.AddConsumer<TransactionExecutedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -63,6 +64,11 @@ builder.Services.AddMassTransit(x =>
         {
             // Connect the consumer to this queue
             e.ConfigureConsumer<UserCreatedConsumer>(context);
+        });
+
+        cfg.ReceiveEndpoint("transaction-executed-queue", e =>
+        {
+            e.ConfigureConsumer<TransactionExecutedConsumer>(context);
         });
     });
 });

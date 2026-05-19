@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
+using WalletService.Contracts;
 using WalletService.Common;
 using WalletService.Data;
 using WalletService.Dtos;
@@ -9,10 +11,12 @@ namespace WalletService.Services;
 public class TransactionManager : ITransactionManager
 {
     private readonly WalletDbContext _context;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public TransactionManager(WalletDbContext context)
+    public TransactionManager(WalletDbContext context, IPublishEndpoint publishEndpoint)
     {
         _context = context;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<Result<TransactionResponseDto>> ProcessTransactionAsync(
@@ -73,6 +77,21 @@ public class TransactionManager : ITransactionManager
 
         // Commit mutations atomically within a single transactional unit
         await _context.SaveChangesAsync();
+
+        // Safely publish our contract to the message bus after database success.
+        // We transform our internal domain enum into a string to preserve backward compatibility.
+        await _publishEndpoint.Publish(new TransactionExecuted
+        {
+            TransactionId = transaction.Id,
+            WalletId = walletId,
+            AssetId = asset.Id,
+            Ticker = asset.Ticker,
+            Amount = transaction.Amount,
+            // Converts to "Deposit" or "Withdrawal" strings seamlessly
+            Type = transaction.Type.ToString(),
+            Description = transaction.Description,
+            Timestamp = transaction.Timestamp
+        });
 
         // Build the mapped tracking response object
         var response = new TransactionResponseDto
