@@ -33,7 +33,13 @@ const TransactionHistoryList = ({ walletId, assetId, ticker }: Props) => {
             .finally(() => dispatch(setLoading(false)));
     }, [walletId, assetId, ticker, dispatch]);
 
-    if (loading) return <p className="text-slate-500 animate-pulse">Loading ledger...</p>;
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="mt-4 space-y-2">

@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../store/configureStore';
 import { fetchCurrentUser } from '../../features/auth/reducers/authSlice';
 
+import { useWalletHub } from '../../common/hooks/useWalletHub';
+
 import Navbar from '../../common/components/Navbar';
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
@@ -16,6 +18,8 @@ const App = () => {
   const { user } = useAppSelector(state => state.auth);
 
   const [isLoginView, setIsLoginView] = useState(true);
+
+  useWalletHub();
 
   useEffect(() => {
     // Grab the current stored token from the standardized storage key
