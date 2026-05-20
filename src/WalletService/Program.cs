@@ -10,6 +10,7 @@ using WalletService.Data;
 using WalletService.Middleware;
 using WalletService.Services;
 using WalletService.Validators;
+using WalletService.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +40,9 @@ builder.Services.AddAuthorization();
 
 // Bind Transaction Manager
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Bind SignalR services to the DI container
+builder.Services.AddSignalR();
 
 // Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -99,5 +103,6 @@ if (!app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<WalletHub>("/hubs/wallets"); // Expose the secure hub pathway over the server instance
 
 app.Run();

@@ -10,4 +10,5 @@ public record TransactionExecuted
     public string Type { get; init; } = string.Empty; // "Deposit" or "Withdrawal"
     public string Description { get; init; } = string.Empty;
     public DateTime Timestamp { get; init; }
+    public string UserId { get; set; } = string.Empty; // Added to route the WebSocket safely
 }

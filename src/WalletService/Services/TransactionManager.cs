@@ -90,7 +90,8 @@ public class TransactionManager : ITransactionManager
             // Converts to "Deposit" or "Withdrawal" strings seamlessly
             Type = transaction.Type.ToString(),
             Description = transaction.Description,
-            Timestamp = transaction.Timestamp
+            Timestamp = transaction.Timestamp,
+            UserId = userId
         });
 
         // Build the mapped tracking response object
