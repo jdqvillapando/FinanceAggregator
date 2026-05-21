@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using MassTransit;
 using WalletService.Contracts;
 using WalletService.Data;
@@ -11,12 +12,20 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
 {
     private readonly WalletDbContext _context;
     private IHubContext<WalletHub, IWalletClient> _hubContext;
+    private readonly IDistributedCache _cache;
     private readonly ILogger<TransactionExecutedConsumer> _logger;
 
-    public TransactionExecutedConsumer(WalletDbContext context, IHubContext<WalletHub, IWalletClient> hubContext, ILogger<TransactionExecutedConsumer> logger)
+    public TransactionExecutedConsumer(
+        WalletDbContext context,
+        IHubContext<WalletHub,
+        IWalletClient> hubContext,
+        IDistributedCache cache,
+        ILogger<TransactionExecutedConsumer> logger
+    )
     {
         _context = context;
         _hubContext = hubContext;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -45,6 +54,12 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
 
         _logger.LogInformation("Successfully finalized eventual consistency loop. New Balance for {Ticker}: {NewBalance}", 
             asset.Ticker, asset.Balance);
+
+        // FIX: CACHE INVALIDATION LAYER
+        // Every time a consumer updates the database out-of-band, we MUST clear 
+        // the cache key so the next read path fetches the fresh balance totals!
+        string cacheKey = $"user_wallets_{message.UserId}";
+        await _cache.RemoveAsync(cacheKey);
         
         // SignalR WebSocket streaming path:
         // We target only the Group named after the user's explicit ID.
