@@ -55,15 +55,23 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
         _logger.LogInformation("Successfully finalized eventual consistency loop. New Balance for {Ticker}: {NewBalance}", 
             asset.Ticker, asset.Balance);
 
-        // FIX: CACHE INVALIDATION LAYER
-        // Every time a consumer updates the database out-of-band, we MUST clear 
-        // the cache key so the next read path fetches the fresh balance totals!
-        string cacheKey = $"user_wallets_{message.UserId}";
-        await _cache.RemoveAsync(cacheKey);
+        try
+        {
+            // FIX: CACHE INVALIDATION LAYER
+            // Every time a consumer updates the database out-of-band, we MUST clear 
+            // the cache key so the next read path fetches the fresh balance totals!
+            string cacheKey = $"user_wallets_{message.UserId}";
+            await _cache.RemoveAsync(cacheKey);
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Redis connection failed during out-of-band cache invalidation for key: user_wallets_{UserId}. Proceeding to real-time streams.", message.UserId);
+        }
         
         // SignalR WebSocket streaming path:
         // We target only the Group named after the user's explicit ID.
         // This guarantees absolute security -- User A can never sniff User B's balance streams.
+        // Notify the frontend client reactively via the live SignalR backplane stream
         if (!string.IsNullOrEmpty(message.UserId))
         {
             await _hubContext.Clients

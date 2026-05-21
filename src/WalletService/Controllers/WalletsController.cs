@@ -1,6 +1,9 @@
 using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using WalletService.Common;
 using WalletService.Data;
 using WalletService.Dtos;
@@ -10,17 +13,20 @@ using WalletService.Services;
 
 namespace WalletService.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/[controller]")] // Versioning (v1) is an industry best practice
 public class WalletsController : ControllerBase
 {
     private readonly WalletDbContext _context;
     private readonly ITransactionManager _transactionManager;
+    private readonly IDistributedCache _cache;
 
-    public WalletsController(WalletDbContext context, ITransactionManager transactionManager)
+    public WalletsController(WalletDbContext context, ITransactionManager transactionManager, IDistributedCache cache)
     {
         _context = context;
         _transactionManager = transactionManager;
+        _cache = cache;
     }
 
     // GET: api/v1/wallets
@@ -29,12 +35,53 @@ public class WalletsController : ControllerBase
     {
         // Extract ID from the JWT 'sub' claim
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(Result<List<Wallet>>.Failure("User not identified."));
+        
+        // Establish a structured cache key
+        string cacheKey =$"user_wallets_{userId}";
 
+        try
+        {
+            // Attempt an in-memory look up directly from Redis RAM
+            var cachedData = await _cache.GetStringAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                // Cache Hit! Instantly deserialize and serve data in under 2ms
+                var cachedWallets = JsonSerializer.Deserialize<List<Wallet>>(cachedData);
+                return Ok(Result<List<Wallet>>.Success(cachedWallets!));
+            }
+        }
+        catch (Exception)
+        {
+            // Fail-Safe: If Redis is down, allow the application to proceed gracefully to the DB
+        }
+
+        // Cache Miss! Fall back to the disk-based SQLite ledger tables
         // We include Assets so you can see the related data in one call
         var userWallets = await _context.Wallets
             .Where(w => w.UserId == userId)
             .Include(i => i.Assets)
             .ToListAsync();
+
+        try
+        {
+            // Hydrate Redis out-of-band so subsequent read calls are lightning fast
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                // Sliding expiration pushes out the lease time if the user is actively navigating
+                SlidingExpiration = TimeSpan.FromMinutes(15),
+                // Absolute expiration limits stale memory exposure even under heavy usage
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(4)
+            };
+
+            var serializedData = JsonSerializer.Serialize(userWallets);
+            await _cache.SetStringAsync(cacheKey, serializedData, cacheOptions);
+        }
+        catch (Exception)
+        {
+            // Fail-Safe: Do not crash the user request if a cache-write fails
+        }
 
         return Ok(Result<IEnumerable<Wallet>>.Success(userWallets));
     }
@@ -59,6 +106,16 @@ public class WalletsController : ControllerBase
 
         _context.Wallets.Add(wallet);
         await _context.SaveChangesAsync();
+
+        try
+        {
+            // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
+            await _cache.RemoveAsync($"user_wallets_{userId}");
+        }
+        catch (Exception)
+        {
+
+        }
 
         return CreatedAtAction(nameof(GetWallets), new { id = wallet.Id }, Result<Wallet>.Success(wallet));
     }
@@ -92,6 +149,17 @@ public class WalletsController : ControllerBase
         _context.Assets.Add(asset);
         await _context.SaveChangesAsync();
 
+        try
+        {
+            // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
+            await _cache.RemoveAsync($"user_wallets_{userId}");
+        }
+        catch (Exception)
+        {
+
+        }
+
+
         return Ok(Result<Asset>.Success(asset));
     }
 
@@ -117,6 +185,17 @@ public class WalletsController : ControllerBase
         // Remove and save
         _context.Assets.Remove(asset);
         await _context.SaveChangesAsync();
+
+        try
+        {
+            // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
+            // so the user dashboard reflects the deleted row instantly
+            await _cache.RemoveAsync($"user_wallets_{userId}");
+        }
+        catch (Exception)
+        {
+
+        }
 
         return Ok(Result<string>.Success("Asset removed successfully."));
     }
@@ -264,6 +343,20 @@ public class WalletsController : ControllerBase
         if (!result.IsSuccess)
         {
             return BadRequest(result);
+        }
+
+        try
+        {
+            // OPTIMIZATION GUARD:
+            // Wiping out the cache ensures that the subsequent fast-read path 
+            // query hits a cache miss and captures the database balance changes
+            await _cache.RemoveAsync($"user_wallets_{userId}");
+        }
+        catch (Exception ex)
+        {
+            // Fail-Safe: Log the exception to console, but don't stop the request!
+            // The transaction successfully hit the DB, which is what matters most.
+            Console.WriteLine($"[Resilience Fallback] Redis offline during transaction eviction: {ex.Message}");
         }
 
         return Ok(result);

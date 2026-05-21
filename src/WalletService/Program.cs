@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using MassTransit;
+using StackExchange.Redis;
 using WalletService.Consumers;
 using WalletService.Data;
 using WalletService.Middleware;
@@ -43,6 +44,22 @@ builder.Services.AddScoped<ITransactionManager, TransactionManager>();
 
 // Bind SignalR services to the DI container
 builder.Services.AddSignalR();
+
+// Register a single thread-safe connection pool instance to avoid socket exhaustion
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+{
+    // Enforce default or fallback port mappings to 5207 (Redis listens to port 6379 by default)
+    var configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:5207";
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
+// Configure .NET's standard IDistributedCache abstraction layer backed by Redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:5207";
+    // Namespace partitioning isolation
+    options.InstanceName = "FinanceAggregator_Wallets:";
+});
 
 // Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
