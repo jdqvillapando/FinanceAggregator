@@ -17,7 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Setup SQLite
 builder.Services.AddDbContext<IdentityDbContext>(options =>
-    options.UseSqlite("Data Source=Identity.db"));
+{
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=Identity.db";
+    options.UseSqlite(connString);
+});
 
 // Setup Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -71,11 +74,20 @@ builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("localhost", "/", h =>
+        // Dynamic Host Injection
+        // In Docker, RabbitMQ:Host is reinterpreted as RabbitMQ__Host
+        var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        cfg.Host(rabbitHost, "/", h =>
         {
             h.Username("guest");
             h.Password("guest");
         });
+
+        // Resilient Bus Connection (Prevents 500 Startup Crash)
+        cfg.UseMessageRetry(r => r.Exponential(5, 
+            TimeSpan.FromSeconds(2), 
+            TimeSpan.FromSeconds(30), 
+            TimeSpan.FromSeconds(5)));
     });
 });
 
@@ -85,6 +97,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<IdentityDbContext>();
+        context.Database.Migrate(); // Creates the AspNetUsers tables
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the Identity database.");
+    }
+}
 
 app.UseMiddleware<ExceptionMiddleware>();
 
