@@ -18,7 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Register DbContext
 builder.Services.AddDbContext<WalletDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=Wallet.db";
+    options.UseSqlite(connString);
+});
 
 // Add Authentication Services
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -49,7 +52,9 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
 {
     // Enforce default or fallback port mappings to 5207 (Redis listens to port 6379 by default)
-    var configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:5207";
+    var configuration = builder.Configuration["Redis:Host"] ?? // Use the environment variable "Redis:Host" (Redis__Host in Docker) provided by Docker Compose
+        builder.Configuration.GetConnectionString("Redis") ??
+        "localhost:5207";
     return ConnectionMultiplexer.Connect(configuration);
 });
 
@@ -74,11 +79,20 @@ builder.Services.AddMassTransit(x =>
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("localhost", "/", h =>
+        // Dynamic Host Injection
+        // In Docker, RabbitMQ:Host is reinterpreted as RabbitMQ__Host
+        var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        cfg.Host(rabbitHost, "/", h =>
         {
             h.Username("guest");
             h.Password("guest");
         });
+
+        // Resilient Bus Connection (Prevents 500 Startup Crash)
+        cfg.UseMessageRetry(r => r.Exponential(5, 
+            TimeSpan.FromSeconds(2), 
+            TimeSpan.FromSeconds(30), 
+            TimeSpan.FromSeconds(5)));
 
         // Configure the "Inbox" (Queue) for this service
         cfg.ReceiveEndpoint("user-created-queue", e =>
@@ -100,6 +114,22 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    // AUTOMATIC DATABASE MIGRATION ON STARTUP (WALLET SERVICE)
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<WalletDbContext>();
+        context.Database.Migrate(); // Ensures Wallet.db tables exist!
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the Wallet database.");
+    }
+}
 
 // Configure "catch-all" net that handles any unexpected errors
 app.UseMiddleware<ExceptionMiddleware>();
