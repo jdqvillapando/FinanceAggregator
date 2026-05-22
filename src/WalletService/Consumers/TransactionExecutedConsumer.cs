@@ -39,18 +39,16 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
         var asset = await _context.Assets
             .FirstOrDefaultAsync(a => a.Id == message.AssetId);
 
+        // Fetch the target asset bucket database record that was already finalized by the TransactionManager
         if (asset == null)
         {
-            _logger.LogError("Asynchronous balance update failed: Asset snapshot with ID {AssetId} not found.", message.AssetId);
-            throw new InvalidOperationException($"Asset with ID {message.AssetId} does not exist.");
+            _logger.LogWarning("Asset record {AssetId} not found during event reconciliation lifecycle.", message.AssetId);
+
+            return;
         }
 
-        // Apply the pre-calculated numeric amount sent by the publisher transaction manager
-        // (Since the transaction history record already handles negation for withdrawals, we add it safely here)
-        asset.Balance += message.Amount;
-
-        // Persist the aggregate balance mutation to the database out-of-band
-        await _context.SaveChangesAsync();
+        // We are now removing the transaction mutations and saving 
+        // here because TransactonManager is already doing it. 
 
         _logger.LogInformation("Successfully finalized eventual consistency loop. New Balance for {Ticker}: {NewBalance}", 
             asset.Ticker, asset.Balance);
