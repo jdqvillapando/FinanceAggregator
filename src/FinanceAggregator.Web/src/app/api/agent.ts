@@ -3,11 +3,12 @@ import type { Result } from '../models/apiResponse';
 import type { AuthResponse, LoginCredentials, UserFormValues } from '../models/user';
 import type { Wallet } from '../models/wallet';
 import type { Transaction, TransactionFormValues, TransactionResponse } from '../models/transaction';
+import { GATEWAY_URL } from '../../common/constants';
 
 
 // Use an instance instead of global defaults
 const api = axios.create({
-    baseURL: 'http://localhost:5153/api/v1'
+    baseURL: `${GATEWAY_URL}/api/v1`
 });
 
 // STANDARDS: Request Interceptor to automatically attach JWT
