@@ -18,8 +18,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Setup SQLite
 builder.Services.AddDbContext<IdentityDbContext>(options =>
 {
-    var connString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=Identity.db";
-    options.UseSqlite(connString);
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(connString, npgsqlOptions =>
+    {
+        // Explicitly map EF migrations tracking to our isolated schema context
+        npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "identity_schema");
+    });
 });
 
 // Setup Identity

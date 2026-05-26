@@ -2,6 +2,27 @@ services:
   # =======================================================================
   # INFRASTRUCTURE TIER
   # =======================================================================
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: fa_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=faadmin
+      - POSTGRES_PASSWORD=Ladmin01!
+      - POSTGRES_DB=fadb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_master_data:/var/lib/postgresql/data
+    # This tells Docker how to test if the database inside is actually ready for traffic
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faadmin -d fadb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+     - finance_network
+
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: fa_rabbitmq
@@ -38,12 +59,14 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5205 # Binds to internal container port 5205
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/Identity.db
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=identity_schema
       - RabbitMQ__Host=rabbitmq
-    volumes:
-      - identity_db_data:/app/data
+    # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
     networks:
       - finance_network
 
@@ -56,14 +79,17 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5202 # Binds to internal container port 5202
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/Wallet.db
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=wallet_schema
       - Redis__Host=redis
       - RabbitMQ__Host=rabbitmq
-    volumes:
-      - wallet_db_data:/app/data
+    # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
-      - rabbitmq
-      - redis
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
     networks:
       - finance_network
 
@@ -96,10 +122,7 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  identity_db_data:
-    driver: local
-  wallet_db_data:
-    driver: local
+  postgres_master_data:
 
 networks:
   finance_network:

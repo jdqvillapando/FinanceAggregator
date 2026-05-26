@@ -19,8 +19,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Register DbContext
 builder.Services.AddDbContext<WalletDbContext>(options =>
 {
-    var connString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=Wallet.db";
-    options.UseSqlite(connString);
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(connString, npgsqlOptions =>
+    {
+        // Explicitly map EF migrations tracking to our isolated schema context
+        npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "wallet_schema");
+    });
 });
 
 // Add Authentication Services

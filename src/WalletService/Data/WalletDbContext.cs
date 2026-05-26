@@ -14,6 +14,9 @@ public class WalletDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // FORCE all wallet-related domain tables into our isolated schema
+        modelBuilder.HasDefaultSchema("wallet_schema");
+
         // Crucial for Fintech: Define decimal precision
         modelBuilder.Entity<Asset>()
             .Property(a => a.Balance)
