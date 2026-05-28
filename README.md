@@ -83,7 +83,7 @@ Once the runtime containers show a healthy or running status inside your contain
 * **Central Authentication Engine Swagger Docs:** `http://localhost:5153/swagger/index.html` (Routed to Identity Context)
 * **Core Ledger Financial Swagger Docs:** `http://localhost:5153/swagger/index.html` (Routed to Wallet Context)
 * **RabbitMQ Management Control Panel:** `http://localhost:15672` (Credentials: guest / guest)
-* **Frontend UI Client Workspace Dashboard:** `http://localhost:5173`
+* **Frontend UI Client Workspace Dashboard:** `http://localhost:3000`
 
 ---
 
