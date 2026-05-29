@@ -35,7 +35,8 @@ The system is engineered utilizing an decoupled microservices topology enclosed 
 * **Asynchronous Messaging Bus:** RabbitMQ Broker utilizing MassTransit orchestration for eventually consistent state propagation and decoupled background event consumer workers.
 * **Distributed Cache Tier:** High-throughput Redis Cache-Aside (Lazy Loading) architecture securing reactive asset read paths and minimizing raw database connection pools.
 * **Real-Time Streaming Layer:** Persistent WebSockets backed by ASP.NET Core SignalR pushing immediate aggregate ledger balance updates directly to the client view without manual dashboard polling.
-* **Modern Frontend Tier:** React, TypeScript, Redux Toolkit normalized state machines, and Tailwind CSS layout design.
+* **Modern Frontend Tier:** React, TypeScript, Redux Toolkit normalized state machines, and Tailwind CSS layout design. Compiled and optimized via a multi-stage process and served via an enterprise-ready Nginx Static Web Server instance.
+* **Infrastructure Resilience:** Advanced Polly policies (Exponential Backoff Retries & Circuit Breakers) isolating inter-service HTTP communication, paired with a database-backed MassTransit Transactional Outbox blueprint to guarantee message processing consistency during broker anomalies.
 
 ---
 
@@ -80,10 +81,8 @@ docker compose up -d
 ### 3. Service Verification Endpoints
 Once the runtime containers show a healthy or running status inside your container dashboard, they map cleanly to the following host endpoints via the YARP Entry Gateway:
 * **API Gateway Reverse Proxy System Entry:** `http://localhost:5153`
-* **Central Authentication Engine Swagger Docs:** `http://localhost:5153/swagger/index.html` (Routed to Identity Context)
-* **Core Ledger Financial Swagger Docs:** `http://localhost:5153/swagger/index.html` (Routed to Wallet Context)
 * **RabbitMQ Management Control Panel:** `http://localhost:15672` (Credentials: guest / guest)
-* **Frontend UI Client Workspace Dashboard:** `http://localhost:3000`
+* **Frontend UI Client Workspace Dashboard:** `http://localhost:3000` (served via Nginx container)
 
 ---
 
