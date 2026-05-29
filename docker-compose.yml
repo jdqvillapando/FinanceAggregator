@@ -115,6 +115,22 @@ services:
       - finance_network
 
 # =======================================================================
+  # FRONTEND USER PORTAL CLIENT
+  # =======================================================================
+  frontend-web:
+    build:
+      context: ./src/FinanceAggregator.Web
+      dockerfile: Dockerfile
+    container_name: fa_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # Maps local host port 3000 cleanly to internal Nginx container port 80
+    depends_on:
+      - yarp-gateway # Guarantees routing definitions and auth pipes are active before UI renders
+    networks:
+      - finance_network    
+
+# =======================================================================
 # PERSISTENT DATA TIERS & LOGICAL ISOLATION BRIDGES
 # =======================================================================
 volumes:
