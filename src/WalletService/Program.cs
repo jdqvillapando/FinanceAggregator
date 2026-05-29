@@ -6,6 +6,8 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using MassTransit;
 using StackExchange.Redis;
+using Polly;
+using Polly.Extensions.Http;
 using WalletService.Consumers;
 using WalletService.Data;
 using WalletService.Middleware;
@@ -15,6 +17,33 @@ using WalletService.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Define resilience policies
+// (1)
+var retryPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError() // Handles 5xx status codes, 408 timeouts, and network exceptions
+        .WaitAndRetryAsync(
+            3,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff: 2s, 4s, 8s
+            onRetry: (outcome, timespan, retryCount, context) =>
+            {
+                Console.WriteLine($"[Polly Retry] Attempt {retryCount} failed. Waiting {timespan.TotalSeconds}s before next try.");
+            }
+        );
+
+// (2)
+var circuitBreakerPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            handledEventsAllowedBeforeBreaking: 5, // Break circuit after 5 consecutive failures
+            durationOfBreak: TimeSpan.FromSeconds(30), // Keep circuit open for 30s before testing again
+            onBreak: (outcome, breakDuration, context) =>
+            {
+                Console.WriteLine($"[Polly Circuit Breaker] Circuit tripped! Blocking traffic for {breakDuration.TotalSeconds}s.");
+            },
+            onReset: (context) => Console.WriteLine("[Polly Circuit Breaker] Circuit closed and operational again."),
+            onHalfOpen: () => Console.WriteLine("[Polly Circuit Breaker] Circuit is half-open. Testing next request...")
+        );
 
 // Register DbContext
 builder.Services.AddDbContext<WalletDbContext>(options =>
@@ -62,6 +91,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Bind the policies straight to your Named or Typed HttpClient
+builder.Services
+    .AddHttpClient(
+        "IdentityServiceClient",
+        client =>
+        {
+            // Point this to your internal container gateway or endpoint
+            client.BaseAddress = new Uri("http://identity-service:5205/"); 
+            client.Timeout = TimeSpan.FromSeconds(10);
+        }
+    )
+    .AddPolicyHandler(retryPolicy) // Layers on the Retry capability first
+    .AddPolicyHandler(circuitBreakerPolicy); // Wraps the call inside a Circuit Breaker boundary
+
 // Bind Transaction Manager
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
 
@@ -96,6 +139,17 @@ builder.Services.AddMassTransit(x =>
     // Add the consumer(s)
     x.AddConsumer<UserCreatedConsumer>();
     x.AddConsumer<TransactionExecutedConsumer>();
+
+    // Configure EF Core Outbox
+    x.AddEntityFrameworkOutbox<WalletDbContext>(efo =>
+    {
+        // Keeps outbox tracking entries bundled inside your schema
+        efo.QueryDelay = TimeSpan.FromSeconds(1);
+        // Use PostgreSQL orchestration rules because we're using such
+        efo.UsePostgres();
+        // Enable background outbox delivery worker
+        efo.UseBusOutbox();
+    });
 
     x.UsingRabbitMq((context, cfg) =>
     {
