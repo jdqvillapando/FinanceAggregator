@@ -113,8 +113,25 @@ services:
       - wallet-service
     networks:
       - finance_network
+    
+  # =======================================================================
+  # ASYNCHRONOUS NOTIFICATION WORKER SERVICE
+  # =======================================================================
+  notification-service:
+    build:
+      context: ./src/NotificationService
+      dockerfile: Dockerfile
+    container_name: fa_notification
+    restart: unless-stopped
+    environment:
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - finance_network
 
-# =======================================================================
+  # =======================================================================
   # FRONTEND USER PORTAL CLIENT
   # =======================================================================
   frontend-web:

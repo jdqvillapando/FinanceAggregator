@@ -6,27 +6,34 @@ FinanceAggregator is an ongoing project that aims to create a production-grade, 
 
 ## Architecture Overview
 
-The system is engineered utilizing an decoupled microservices topology enclosed behind a central API Gateway. It enforces strict domain context isolation, asynchronous transactional processing pipelines, distributed caching architectures, and robust multi-schema data segregation.
+The system is engineered utilizing an decoupled microservices topology enclosed behind a central API Gateway. It enforces strict domain context isolation, resilient intra-service network layers, asynchronous transactional processing pipelines, distributed caching architectures, and robust multi-schema data segregation.
 
-                                                  [ Public Internet ]
-                                                           │  (HTTPS / WSS)
-                                                           ▼
-                                               ┌───────────────────────┐
-                                               │     YarpGateway       │  (CORS Termination / Reverse Proxy)
-                                               └───────────┬───────────┘
-                                                           │
-                                 ┌─────────────────────────┼─────────────────────────┐
-                                 │ (Internal HTTP)         │ (Internal HTTP)         │ (WebSockets / SignalR)
-                                 ▼                         ▼                         ▼
-                         ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-                         │    IdentityService    │ │     WalletService     │ │    SignalR Backplane  │
-                         │   (identity_schema)   │ │    (wallet_schema)    │ │   (Real-Time Streaming)
-                         └───────────┬───────────┘ └───────────┬───────────┘ └───────────┬───────────┘
-                                     │                         │                         │
-                                     │      ┌───────────┐      │      ┌───────────┐      │
-                                     └─────►│  Redis    │◄─────┴─────►│ RabbitMQ  │◄─────┘
-                                            │ (Caching) │             │ (Message) │
-                                            └───────────┘             └───────────┘
+                                            [ Public Internet ]
+                                                    │  (HTTPS / WSS)
+                                                    ▼
+                                        ┌───────────────────────┐
+                                        │     YarpGateway       │  (CORS Termination / Reverse Proxy)
+                                        └───────────┬───────────┘
+                                                    │
+                          ┌─────────────────────────┼─────────────────────────┐
+                          │ (Internal HTTP)         │ (Internal HTTP)         │ (WebSockets / SignalR)
+                          ▼                         ▼                         ▼
+                ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
+                │    IdentityService    │ │     WalletService     │ │    SignalR Backplane  │
+                │   (identity_schema)   │ │    (wallet_schema)    │ │   (Real-Time Streaming)
+                └───────────┬───────────┘ └───────────┬───────────┘ └───────────┬───────────┘
+                            │                         │                         │
+                            │      ┌───────────┐      │      ┌───────────┐      │
+                            └─────►│  Redis    │◄─────┴─────►│ RabbitMQ  │◄─────┘
+                                   │ (Caching) │             │ (Message) │
+                                   └───────────┘             └─────┬─────┘
+                                                                   | (Async Event Consumption)
+                                                                   ▼
+                                                            ┌───────────────────┐
+                                                            │NotificationService│
+                                                            │ (Console Worker)  │
+                                                            └───────────────────┘
+
 
 ### System Technology Stack
 * **API Gateway & Routing:** YARP (Yet Another Reverse Proxy), Docker virtual bridge private networking.
@@ -94,6 +101,7 @@ Once the runtime containers show a healthy or running status inside your contain
     │   ├── YarpGateway/            # Gateway Proxy layer enforcing CORS, routing, & proxy policies
     │   ├── IdentityService/        # Secured Authentication context managing user namespaces
     │   ├── WalletService/          # Core transactional ledger engine and balance schemas
+    │   ├── NotificationService/    # Decoupled background event worker processing audit streams
     │   └── FinanceAggregator.Web/  # High-performance React, TypeScript & Redux view engine
     ├── docker-compose.yml          # Master infrastructure, database, and event orchestration script
     ├── FinanceAggregator.sln       # Monorepo cross-service solution compilation manifest
