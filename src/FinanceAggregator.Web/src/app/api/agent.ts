@@ -1,7 +1,7 @@
 import axios, { type AxiosResponse } from 'axios';
 import type { Result } from '../models/apiResponse';
 import type { AuthResponse, LoginCredentials, UserFormValues } from '../models/user';
-import type { Wallet } from '../models/wallet';
+import type { AddAssetValues, Asset, Wallet } from '../models/wallet';
 import type { Transaction, TransactionFormValues, TransactionResponse } from '../models/transaction';
 import { GATEWAY_URL } from '../../common/constants';
 
@@ -31,8 +31,8 @@ const authService = {
 };
 
 const walletService = {
-    // This will hit http://localhost:5153/api/v1/wallets
     getWallets: () => api.get<Result<Wallet[]>>('/wallets').then(responseBody),
+    addAssetToWallet: (walletId: string, body: AddAssetValues) => api.post<Result<Asset>>(`/wallets/${walletId}/assets`, body, { headers: { 'Content-Type': 'application/json' } }).then(responseBody),
 };
 
 const transactionService = {

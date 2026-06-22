@@ -10,6 +10,8 @@ import { TransactionType } from '../../app/models/transaction';
 import TransactionModal from '../transactions/TransactionModal';
 import TransactionHistoryList from '../transactions/TransactionHistoryList';
 
+import AddAssetModal from './AddAssetModal';
+
 
 const Dashboard = () => {
     const dispatch = useAppDispatch();
@@ -21,6 +23,8 @@ const Dashboard = () => {
     const [selectedAsset, setSelectedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null);
     const [modalType, setModalType] = useState<TransactionType>(TransactionType.Deposit);
     const [focusedAsset, setFocusedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null); // Dual-Panel focus selection state
+    const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
+    const [addAssetWalletId, setAddAssetWalletId] = useState<string>('');
 
     const openModal = (walletId: string, assetId: string, ticker: string, type: TransactionType) => {
         setSelectedAsset({ walletId, assetId, ticker });
@@ -59,6 +63,17 @@ const Dashboard = () => {
                                             <h2 className="text-lg font-bold text-slate-800 tracking-tight">{wallet.name}</h2>
                                             <p className="text-[11px] font-mono text-slate-400">Wallet ID: {wallet.id.substring(0, 12)}...</p>
                                         </div>
+
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAddAssetWalletId(wallet.id);
+                                                setIsAddAssetModalOpen(true);
+                                            }}
+                                            className="text-xs bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 font-bold px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
+                                        >
+                                            + Add Asset
+                                        </button>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -166,6 +181,17 @@ const Dashboard = () => {
                         ticker={selectedAsset.ticker}
                         type={modalType}
                         onClose={() => setIsModalOpen(false)}
+                    />
+                )
+            }
+            {
+                isAddAssetModalOpen && addAssetWalletId && (
+                    <AddAssetModal 
+                        walletId={addAssetWalletId}
+                        onClose={() => {
+                            setIsAddAssetModalOpen(false);
+                            setAddAssetWalletId('');
+                        }}
                     />
                 )
             }

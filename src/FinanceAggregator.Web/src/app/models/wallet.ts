@@ -5,6 +5,11 @@ export interface Asset {
     walletId: string;
 }
 
+export interface AddAssetValues {
+    ticker: string;
+    initialBalance: number;
+}
+
 export interface Wallet {
     id: string;
     userId: string;

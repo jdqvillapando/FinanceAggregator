@@ -1,9 +1,12 @@
-import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import axios from 'axios';
+import { createAsyncThunk, createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 import { type RootState } from '../../../app/store/configureStore';
 import { postNewTransaction } from '../../transactions/reducers/transactionSlice';
 
-import type { Wallet } from '../../../app/models/wallet';
+import type { AddAssetValues, Asset, Wallet } from '../../../app/models/wallet';
+
+import agent from '../../../app/api/agent';
 
 
 interface WalletState {
@@ -15,6 +18,29 @@ const initialState: WalletState = {
     wallets: [],
     loading: false
 };
+
+export const addNewAsset = createAsyncThunk<
+        Asset,
+        { walletId: string; values: AddAssetValues; },
+        { rejectValue: string; }>
+    ('wallets/addNewAsset', async ({ walletId, values }, thunkAPI) => {
+        try {
+            const response = await agent.walletService.addAssetToWallet(walletId, values);
+
+            if (!response.isSuccess || !response.data) {
+                return thunkAPI.rejectWithValue(response.errors?.join(' ') || 'Failed to allocate asset.');
+            }
+
+            return response.data; // The returned Asset model
+        }
+        catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Transaction processing encountered an error.');
+            }
+
+            return thunkAPI.rejectWithValue('An unexpected system exception occurred.');
+        }
+    });
 
 export const walletSlice = createSlice({
     name: 'wallets',
@@ -59,6 +85,28 @@ export const walletSlice = createSlice({
                 }
             }
         });
+
+        // -=-=-=-=-=--=-=-=-=-=- ADD ASSET -=-=-=-=-=--=-=-=-=-=-
+        builder.addCase(addNewAsset.pending, (state) => {
+            state.loading = true;
+        });
+
+        builder.addCase(addNewAsset.fulfilled, (state, action) => {
+            state.loading = false;
+            
+            const newAsset = action.payload;
+            const wallet = state.wallets.find(w => w.id === newAsset.walletId);
+
+            if (wallet) {
+                if (!wallet.assets) wallet.assets = [];
+                wallet.assets.push(newAsset); // Append the new holding reactively
+            }
+        });
+
+        builder.addCase(addNewAsset.rejected, (state) => {
+            state.loading = false;
+        });
+        // -=-=-=-=-=--=-=-=-=-=- END ADD ASSET -=-=-=-=-=--=-=-=-=-=-
     }
 });
 
