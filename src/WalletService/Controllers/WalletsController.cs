@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using MassTransit;
+using WalletService.Contracts;
 using WalletService.Common;
 using WalletService.Data;
 using WalletService.Dtos;
@@ -21,12 +23,14 @@ public class WalletsController : ControllerBase
     private readonly WalletDbContext _context;
     private readonly ITransactionManager _transactionManager;
     private readonly IDistributedCache _cache;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public WalletsController(WalletDbContext context, ITransactionManager transactionManager, IDistributedCache cache)
+    public WalletsController(WalletDbContext context, ITransactionManager transactionManager, IDistributedCache cache, IPublishEndpoint publishEndpoint)
     {
         _context = context;
         _transactionManager = transactionManager;
         _cache = cache;
+        _publishEndpoint = publishEndpoint;
     }
 
     // GET: api/v1/wallets
@@ -185,6 +189,14 @@ public class WalletsController : ControllerBase
         // Remove and save
         _context.Assets.Remove(asset);
         await _context.SaveChangesAsync();
+
+        await _publishEndpoint.Publish<AssetDeleted>(new
+        {
+            WalletId = walletId,
+            Ticker = ticker.ToUpper().Trim(),
+            UserId = userId,
+            DeletedAt = DateTime.UtcNow
+        });
 
         try
         {

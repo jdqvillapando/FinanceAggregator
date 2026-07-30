@@ -42,6 +42,29 @@ export const addNewAsset = createAsyncThunk<
         }
     });
 
+export const removeAsset = createAsyncThunk<
+        { walletId: string; ticker: string; },
+        { walletId: string; ticker: string; },
+        { rejectValue: string }>
+    ('wallets/removeAsset', async ({ walletId, ticker }, thunkAPI) => {
+        try {
+            const response = await agent.walletService.removeAssetFromWallet(walletId, ticker);
+
+            if (!response.isSuccess || !response.data) {
+                return thunkAPI.rejectWithValue(response.errors?.join(' ') || 'Failed to remove asset');
+            }
+
+            return { walletId, ticker };
+        }
+        catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Server error occurred during asset removal');
+            }
+
+            return thunkAPI.rejectWithValue('An unexpected system exception occurred.');
+        }
+    });
+
 export const walletSlice = createSlice({
     name: 'wallets',
     initialState,
@@ -107,6 +130,28 @@ export const walletSlice = createSlice({
             state.loading = false;
         });
         // -=-=-=-=-=--=-=-=-=-=- END ADD ASSET -=-=-=-=-=--=-=-=-=-=-
+
+        // -=-=-=-=-=--=-=-=-=-=- REMOVE ASSET -=-=-=-=-=-=-=--=-=-=-=-=-
+        builder.addCase(removeAsset.pending, (state) => {
+            state.loading = true;
+        });
+
+        builder.addCase(removeAsset.fulfilled, (state, action) => {
+            state.loading = false;
+
+            const { walletId, ticker } = action.payload;
+            const wallet = state.wallets.find(w => w.id === walletId);
+
+            if (wallet && wallet.assets) {
+                // Remove asset reactively from Redux state array
+                wallet.assets = wallet.assets.filter(a => a.ticker.toLowerCase() !== ticker.toLowerCase());
+            }
+        });
+
+        builder.addCase(removeAsset.rejected, (state) => {
+            state.loading = false;
+        });
+        // -=-=-=-=-=--=-=-=-=-=- END REMOVE ASSET -=-=-=-=-=--=-=-=-=-=-
     }
 });
 

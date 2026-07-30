@@ -1,5 +1,6 @@
 using MassTransit;
 using NotificationService.Consumers;
+using NotificationService.Contracts;
 
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -32,6 +33,11 @@ builder.Services.AddMassTransit(x =>
         {
             // Connect the consumer to this queue
             e.ConfigureConsumer<TransactionExecutedConsumer>(context);
+        });
+
+        cfg.ReceiveEndpoint("notif-asset-deleted-queue", e =>
+        {
+            e.ConfigureConsumer<AssetDeletedConsumer>(context);
         });
     });
 });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { useAppSelector, useAppDispatch } from '../../app/store/configureStore';
 import { setWallets, setLoading, selectAllWallets, selectWalletsLoading } from './reducers/walletSlice';
@@ -11,6 +12,7 @@ import TransactionModal from '../transactions/TransactionModal';
 import TransactionHistoryList from '../transactions/TransactionHistoryList';
 
 import AddAssetModal from './AddAssetModal';
+import RemoveAssetModal from './RemoveAssetModal';
 
 
 const Dashboard = () => {
@@ -25,6 +27,7 @@ const Dashboard = () => {
     const [focusedAsset, setFocusedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null); // Dual-Panel focus selection state
     const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
     const [addAssetWalletId, setAddAssetWalletId] = useState<string>('');
+    const [removeAsset, setRemoveAsset] = useState<{ walletId: string; ticker: string } | null>(null);
 
     const openModal = (walletId: string, assetId: string, ticker: string, type: TransactionType) => {
         setSelectedAsset({ walletId, assetId, ticker });
@@ -72,7 +75,7 @@ const Dashboard = () => {
                                             }}
                                             className="text-xs bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 font-bold px-3 py-1.5 rounded-lg transition-colors border border-slate-200"
                                         >
-                                            + Add Asset
+                                            <span className="inline-flex items-center"><Plus size={15} />Add Asset</span>
                                         </button>
                                     </div>
 
@@ -104,6 +107,17 @@ const Dashboard = () => {
                                                             <span className="text-lg font-bold font-mono text-slate-900">
                                                                 { formatAssetDisplay(asset.ticker, asset.balance) }
                                                             </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setRemoveAsset({ walletId: asset.walletId, ticker: asset.ticker });
+                                                                }}
+                                                                className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
+                                                                title={`Remove ${asset.ticker}`}
+                                                            >
+                                                                <Trash2 size={20}/>
+                                                            </button>
                                                         </div>
 
                                                         <div className="grid grid-cols-2 gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
@@ -192,6 +206,15 @@ const Dashboard = () => {
                             setIsAddAssetModalOpen(false);
                             setAddAssetWalletId('');
                         }}
+                    />
+                )
+            }
+            {
+                removeAsset && (
+                    <RemoveAssetModal
+                        walletId={removeAsset.walletId}
+                        ticker={removeAsset.ticker}
+                        onClose={() => setRemoveAsset(null)}
                     />
                 )
             }

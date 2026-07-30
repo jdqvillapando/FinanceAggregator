@@ -33,6 +33,7 @@ const authService = {
 const walletService = {
     getWallets: () => api.get<Result<Wallet[]>>('/wallets').then(responseBody),
     addAssetToWallet: (walletId: string, body: AddAssetValues) => api.post<Result<Asset>>(`/wallets/${walletId}/assets`, body, { headers: { 'Content-Type': 'application/json' } }).then(responseBody),
+    removeAssetFromWallet: (walletId: string, ticker: string) => api.delete<Result<string>>(`/wallets/${walletId}/assets/${ticker}`).then(responseBody),
 };
 
 const transactionService = {

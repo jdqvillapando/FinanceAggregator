@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { X } from 'lucide-react';
 import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 import { type AddAssetValues } from '../../app/models/wallet';
@@ -55,7 +56,7 @@ const AddAssetModal = ({ walletId, onClose }: Props) => {
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-slate-800">Allocate New Asset</h3>
                     <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-                        ✕
+                        <X />
                     </button>
                 </div>
 
