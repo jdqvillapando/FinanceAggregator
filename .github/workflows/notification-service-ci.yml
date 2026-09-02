@@ -1,14 +1,14 @@
-name: YARP Gateway CI
+name: Notification Service CI
 
 on:
   push:
     branches: [ "main", "dev" ]
     paths:
-      - 'src/YarpGateway/**' # Only run if the Gateway changes
+      - 'src/NotificationService/**'
   pull_request:
     branches: [ "main", "dev" ]
     paths:
-      - 'src/YarpGateway/**'
+      - 'src/NotificationService/**'
 
 jobs:
   build:
@@ -20,10 +20,10 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x' 
+        dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore src/YarpGateway/YarpGateway.csproj
+      run: dotnet restore src/NotificationService/NotificationService.csproj
 
     - name: Build
-      run: dotnet build src/YarpGateway/YarpGateway.csproj --no-restore --configuration Release
+      run: dotnet build src/NotificationService/NotificationService.csproj --no-restore --configuration Release
