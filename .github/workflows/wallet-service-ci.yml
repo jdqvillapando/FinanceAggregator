@@ -2,11 +2,11 @@ name: Wallet Service CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main", "dev" ]
     paths:
       - 'src/WalletService/**' # Trigger only for Wallet Service changes
   pull_request:
-    branches: [ main ]
+    branches: [ "main", "dev" ]
     paths:
       - 'src/WalletService/**'
 
