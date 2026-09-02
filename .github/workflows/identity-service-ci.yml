@@ -2,11 +2,11 @@ name: Identity Service CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main", "dev" ]
     paths:
       - 'src/IdentityService/**' # Trigger only for Identity Service changes
   pull_request:
-    branches: [ main ]
+    branches: [ "main", "dev" ]
     paths:
       - 'src/IdentityService/**'
 
