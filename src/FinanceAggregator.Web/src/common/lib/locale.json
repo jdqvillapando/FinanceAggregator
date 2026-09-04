@@ -1,0 +1,422 @@
+[
+    {
+        "localeCountry": "Argentina",
+        "abbreviation": "AR",
+        "language": "es",
+        "fiat": "ARS",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Australia",
+        "abbreviation": "AU",
+        "language": "en",
+        "fiat": "AUD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Austria",
+        "abbreviation": "AT",
+        "language": "de",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Bahrain",
+        "abbreviation": "BH",
+        "language": "ar",
+        "fiat": "BHD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Belarus",
+        "abbreviation": "BY",
+        "language": "ru",
+        "fiat": "BYR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Belgium",
+        "abbreviation": "BE",
+        "language": "fr",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Brazil",
+        "abbreviation": "BR",
+        "language": "pt",
+        "fiat": "BRL",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Brunei",
+        "abbreviation": "BN",
+        "language": "ms",
+        "fiat": "BND",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Cambodia",
+        "abbreviation": "KH",
+        "language": "km",
+        "fiat": "KHR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Canada",
+        "abbreviation": "CA",
+        "language": "en",
+        "fiat": "CAD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "China",
+        "abbreviation": "CN",
+        "language": "zh",
+        "fiat": "CNY",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Czechia",
+        "abbreviation": "CZ",
+        "language": "cs",
+        "fiat": "CZK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Denmark",
+        "abbreviation": "DK",
+        "language": "da",
+        "fiat": "DKK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Egypt",
+        "abbreviation": "EG",
+        "language": "ar",
+        "fiat": "EGP",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "France",
+        "abbreviation": "FR",
+        "language": "fr",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Germany",
+        "abbreviation": "DE",
+        "language": "de",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Greece",
+        "abbreviation": "GR",
+        "language": "el",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Hong Kong S.A.R.",
+        "abbreviation": "HK",
+        "language": "en",
+        "fiat": "HKD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "India",
+        "abbreviation": "IN",
+        "language": "en",
+        "fiat": "INR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Indonesia",
+        "abbreviation": "ID",
+        "language": "id",
+        "fiat": "IDR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Iran",
+        "abbreviation": "IR",
+        "language": "fa",
+        "fiat": "IRR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Iraq",
+        "abbreviation": "IQ",
+        "language": "ar",
+        "fiat": "IQD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Ireland",
+        "abbreviation": "IE",
+        "language": "en",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Italy",
+        "abbreviation": "IT",
+        "language": "it",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Japan",
+        "abbreviation": "JP",
+        "language": "ja",
+        "fiat": "JPY",
+        "fractionalDigitPlacement": 0
+    },
+    {
+        "localeCountry": "Jordan",
+        "abbreviation": "JO",
+        "language": "ar",
+        "fiat": "JOD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Kosovo",
+        "abbreviation": "XK",
+        "language": "sq",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Kuwait",
+        "abbreviation": "KW",
+        "language": "ar",
+        "fiat": "KWD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Laos",
+        "abbreviation": "LA",
+        "language": "lo",
+        "fiat": "LAK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Latvia",
+        "abbreviation": "LV",
+        "language": "lv",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Lebanon",
+        "abbreviation": "LB",
+        "language": "ar",
+        "fiat": "LBP",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Lithuania",
+        "abbreviation": "LT",
+        "language": "lt",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Luxembourg",
+        "abbreviation": "LB",
+        "language": "lu",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Malaysia",
+        "abbreviation": "MY",
+        "language": "ms",
+        "fiat": "MYR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Mexico",
+        "abbreviation": "MX",
+        "language": "es",
+        "fiat": "MXN",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Morocco",
+        "abbreviation": "MA",
+        "language": "ar",
+        "fiat": "MAD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Myanmar",
+        "abbreviation": "MM",
+        "language": "my",
+        "fiat": "MMK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Netherlands",
+        "abbreviation": "NL",
+        "language": "nl",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "New Zealand",
+        "abbreviation": "NZ",
+        "language": "en",
+        "fiat": "NZD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Norway",
+        "abbreviation": "NO",
+        "language": "no",
+        "fiat": "NOK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Philippines",
+        "abbreviation": "PH",
+        "language": "en",
+        "fiat": "PHP",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Poland",
+        "abbreviation": "PL",
+        "language": "pl",
+        "fiat": "PLN",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Portugal",
+        "abbreviation": "PT",
+        "language": "pt",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Qatar",
+        "abbreviation": "QA",
+        "language": "ar",
+        "fiat": "QAR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Russia",
+        "abbreviation": "RU",
+        "language": "ru",
+        "fiat": "RUB",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Saudi Arabia",
+        "abbreviation": "SA",
+        "language": "ar",
+        "fiat": "SAR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Singapore",
+        "abbreviation": "SG",
+        "language": "en",
+        "fiat": "SGD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "South Korea",
+        "abbreviation": "KR",
+        "language": "ko",
+        "fiat": "KRW",
+        "fractionalDigitPlacement": 0
+    },
+    {
+        "localeCountry": "Spain",
+        "abbreviation": "ES",
+        "language": "es",
+        "fiat": "EUR",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Sweden",
+        "abbreviation": "SE",
+        "language": "sv",
+        "fiat": "SEK",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Switzerland",
+        "abbreviation": "CH",
+        "language": "rm",
+        "fiat": "CHF",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Taiwan",
+        "abbreviation": "TW",
+        "language": "zh",
+        "fiat": "TWD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Thailand",
+        "abbreviation": "TH",
+        "language": "th",
+        "fiat": "THB",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Timor Leste",
+        "abbreviation": "TL",
+        "language": "pt",
+        "fiat": "USD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Turkiye",
+        "abbreviation": "TR",
+        "language": "tr",
+        "fiat": "TRY",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Ukraine",
+        "abbreviation": "UA",
+        "language": "uk",
+        "fiat": "UAH",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "United Arab Emirates",
+        "abbreviation": "AE",
+        "language": "ar",
+        "fiat": "AED",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "United Kingdom",
+        "abbreviation": "GB",
+        "language": "en",
+        "fiat": "GBP",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "United States of America",
+        "abbreviation": "US",
+        "language": "en",
+        "fiat": "USD",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "localeCountry": "Vietnam",
+        "abbreviation": "VN",
+        "language": "vi",
+        "fiat": "VND",
+        "fractionalDigitPlacement": 0
+    }
+]
