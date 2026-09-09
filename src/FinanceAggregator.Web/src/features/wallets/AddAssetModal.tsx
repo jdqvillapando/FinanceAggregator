@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 
 import { type AddAssetValues } from '../../app/models/wallet';
-import FormModal  from '../../common/components/FormModal';
+import FormModal  from '../../common/components/form';
 
 
 interface Props {

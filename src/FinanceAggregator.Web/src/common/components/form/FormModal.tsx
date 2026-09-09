@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { FormProvider, type FieldValues, type FormState, type UseFormReturn } from 'react-hook-form';
 
-import { Modal, type ModalProps } from './Modal';
+import { Modal, type ModalProps } from '../Modal';
 
 
 interface FormModalProps<TFieldValues extends FieldValues> extends Omit<ModalProps, 'children'> {
