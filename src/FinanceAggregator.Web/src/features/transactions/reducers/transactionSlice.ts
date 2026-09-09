@@ -50,7 +50,7 @@ export const postNewTransaction = createAsyncThunk<
         }
         catch (error: unknown) {
             if (axios.isAxiosError(error)) {
-                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Transaction processing encountered an error.');
+                return thunkAPI.rejectWithValue(error.response?.data?.error || 'Transaction processing encountered an error.');
             }
 
             return thunkAPI.rejectWithValue('An unexpected system exception occurred.');

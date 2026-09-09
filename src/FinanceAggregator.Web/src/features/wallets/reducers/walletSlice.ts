@@ -35,7 +35,7 @@ export const addNewAsset = createAsyncThunk<
         }
         catch (error: unknown) {
             if (axios.isAxiosError(error)) {
-                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Transaction processing encountered an error.');
+                return thunkAPI.rejectWithValue(error.response?.data?.error || 'Transaction processing encountered an error.');
             }
 
             return thunkAPI.rejectWithValue('An unexpected system exception occurred.');
@@ -58,7 +58,7 @@ export const removeAsset = createAsyncThunk<
         }
         catch (error: unknown) {
             if (axios.isAxiosError(error)) {
-                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Server error occurred during asset removal');
+                return thunkAPI.rejectWithValue(error.response?.data?.error || 'Server error occurred during asset removal');
             }
 
             return thunkAPI.rejectWithValue('An unexpected system exception occurred.');
