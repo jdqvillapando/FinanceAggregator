@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 
 import { type AddAssetValues } from '../../app/models/wallet';
-import FormModal  from '../../common/components/form';
+import { FormDropdown, FormModal }  from '../../common/components/form';
+import { type DropdownOption } from '../../common/components/Dropdown';
 
 
 interface Props {
@@ -25,6 +26,30 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
             initialBalance: 0
         }
     });
+
+    const watchedTicker = useWatch({
+        control: formMethods.control,
+        name: 'ticker',
+        defaultValue: ''
+    });
+
+    // --------------------------------------------------------------------------------------
+    // For now, we'll use this for dropdown
+    const dummyUSDLocales = ['Timor Leste', 'United States of America'];
+    const dummyEURLocales = [
+        'Austria', 'Belgium', 'France', 'Germany', 'Greece', 'Ireland', 'Italy',
+        'Kosovo', 'Latvia', 'Lithuania', 'Luxembourg', 'Netherlands', 'Portugal', 'Spain'
+    ];
+    const normalizedTicker = watchedTicker?.toUpperCase().trim() || '';
+    let localeOptions: DropdownOption[] = [];
+
+    if (normalizedTicker === 'USD') {
+        localeOptions = dummyUSDLocales.map(locale => ({ label: locale, value: locale }));
+    }
+    else if (normalizedTicker === 'EUR') {
+        localeOptions = dummyEURLocales.map(locale => ({ label: locale, value: locale }));
+    }
+    // --------------------------------------------------------------------------------------
 
     const onSubmit = async (data: AddAssetValues) => {
         setServerError(null);
@@ -92,6 +117,18 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                     </span>)
                 }
             </div>
+
+            {
+                localeOptions.length > 0 && (
+                <div>
+                    <FormDropdown
+                        name = 'locale'
+                        label = 'Region/Locale'
+                        options = {localeOptions}
+                        required
+                    />
+                </div>)
+            }
 
             <div>
                 <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
