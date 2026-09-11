@@ -1,0 +1,37 @@
+[
+    {
+        "name": "Bitcoin",
+        "fiat": "BTC",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Cardano",
+        "fiat": "ADA",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Dogecoin",
+        "fiat": "XDG",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Ethereum",
+        "fiat": "ETH",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Ethereum Classic",
+        "fiat": "ETC",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Solana",
+        "fiat": "SOL",
+        "fractionalDigitPlacement": 2
+    },
+    {
+        "name": "Tron",
+        "fiat": "TRX",
+        "fractionalDigitPlacement": 2
+    }
+]

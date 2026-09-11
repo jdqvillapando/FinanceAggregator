@@ -1,30 +1,55 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { X } from 'lucide-react';
+import { useForm, useWatch } from 'react-hook-form';
+
 import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
+
 import { type AddAssetValues } from '../../app/models/wallet';
+import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
+import { type DropdownOption } from '../../common/components/Dropdown';
 
 
 interface Props {
+    isModalOpen: boolean;
     walletId: string;
-    onClose: () => void;
+    onModalClose: () => void;
 }
 
-const AddAssetModal = ({ walletId, onClose }: Props) => {
+const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
     const dispatch = useAppDispatch();
     const [serverError, setServerError] = useState<string | null>(null);
 
-    const { 
-        register, 
-        handleSubmit, 
-        formState: { errors, isSubmitting } 
-    } = useForm<AddAssetValues>({
+    const formMethods = useForm<AddAssetValues>({
+        mode: 'onTouched', // Triggers validation on blur
         defaultValues: {
             ticker: '',
             initialBalance: 0
         }
     });
+
+    const watchedTicker = useWatch({
+        control: formMethods.control,
+        name: 'ticker',
+        defaultValue: ''
+    });
+
+    // --------------------------------------------------------------------------------------
+    // For now, we'll use this for dropdown
+    const dummyUSDLocales = ['Timor Leste', 'United States of America'];
+    const dummyEURLocales = [
+        'Austria', 'Belgium', 'France', 'Germany', 'Greece', 'Ireland', 'Italy',
+        'Kosovo', 'Latvia', 'Lithuania', 'Luxembourg', 'Netherlands', 'Portugal', 'Spain'
+    ];
+    const normalizedTicker = watchedTicker?.toUpperCase().trim() || '';
+    let localeOptions: DropdownOption[] = [];
+
+    if (normalizedTicker === 'USD') {
+        localeOptions = dummyUSDLocales.map(locale => ({ label: locale, value: locale }));
+    }
+    else if (normalizedTicker === 'EUR') {
+        localeOptions = dummyEURLocales.map(locale => ({ label: locale, value: locale }));
+    }
+    // --------------------------------------------------------------------------------------
 
     const onSubmit = async (data: AddAssetValues) => {
         setServerError(null);
@@ -39,99 +64,111 @@ const AddAssetModal = ({ walletId, onClose }: Props) => {
             };
 
             await dispatch(addNewAsset(submissionPayload)).unwrap();
-            onClose(); 
+            onModalClose(); 
         }
         catch (error: unknown) {
             if (typeof error === 'string') {
                 setServerError(error);
-            } else {
+            }
+            else {
                 setServerError('An unexpected failure occurred while allocating asset holdings.');
             }
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex justify-center items-center z-50 animate-fade-in">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-slate-100">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-slate-800">Allocate New Asset</h3>
-                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-                        <X />
-                    </button>
-                </div>
+        <FormModal<AddAssetValues>
+            isOpen = {isModalOpen}
+            methods = {formMethods}
+            serverErrorsMsg = {serverError}
+            submitLabel = 'Confirm Asset'
+            title = 'Allocate New Asset'
+            onClose = {onModalClose}
+            onSubmit = {onSubmit}
+        >
+            <div className = 'pb-2'>
+                <FormLabel
+                    htmlFor = 'ticker'
+                    error = {formMethods.formState.errors.ticker}
+                    required
+                >
+                    Asset Ticker Symbol
+                </FormLabel>
+                <input 
+                    type = 'text'
+                    placeholder = 'e.g.: BTC, ETH, USD'
+                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
+                        formMethods.formState.errors.ticker ?
+                        'border-rose-400 focus:border-rose-500' :
+                        'border-slate-200 focus:border-indigo-500'
+                    }`}
 
-                {serverError && (
-                    <div className="p-3 mb-4 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
-                        {serverError}
-                    </div>
-                )}
+                    {
+                        ...formMethods.register('ticker', {
+                            required: 'Ticker symbol is required.',
+                            maxLength: {
+                                value: 10,
+                                message: 'Ticker cannot exceed 10 characters.'
+                            }
+                        })
+                    }
+                />
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Asset Ticker Symbol
-                        </label>
-                        <input 
-                            type="text"
-                            placeholder="e.g., BTC, ETH, USD"
-                            className={`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                                errors.ticker ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'
-                            }`}
-                            {...register('ticker', { 
-                                required: 'Ticker symbol is required.',
-                                maxLength: { value: 10, message: 'Ticker cannot exceed 10 characters.' }
-                            })}
-                        />
-                        {errors.ticker && (
-                            <span className="text-rose-500 text-xs font-semibold mt-1 block">
-                                {errors.ticker.message}
-                            </span>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Initial Position Balance
-                        </label>
-                        <input 
-                            type="number"
-                            step="any"
-                            placeholder="0.00"
-                            className={`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                                errors.initialBalance ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'
-                            }`}
-                            {...register('initialBalance', { 
-                                required: 'Initial balance position is required.',
-                                validate: value => value >= 0 || 'Balance position values cannot be negative.'
-                            })}
-                        />
-                        {errors.initialBalance && (
-                            <span className="text-rose-500 text-xs font-semibold mt-1 block">
-                                {errors.initialBalance.message}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                        <button 
-                            type="button"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 rounded-xl shadow-sm shadow-indigo-100 transition-colors flex items-center justify-center"
-                        >
-                            {isSubmitting ? 'Allocating...' : 'Confirm Asset'}
-                        </button>
-                    </div>
-                </form>
+                {
+                    formMethods.formState.errors.ticker && (
+                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
+                        {formMethods.formState.errors.ticker.message}
+                    </span>)
+                }
             </div>
-        </div>
+
+            {
+                localeOptions.length > 0 && (
+                <div className = 'py-2'>
+                    <FormDropdown
+                        name = 'locale'
+                        label = 'Region/Locale'
+                        options = {localeOptions}
+                        required
+                    />
+                </div>)
+            }
+
+            <div className='pt-2'>
+                <FormLabel
+                    htmlFor = 'initialBalance'
+                    helperText = 'Input amount must be a number greater than zero'
+                    error = {formMethods.formState.errors.initialBalance}
+                    required
+                >
+                    Initial Balance
+                </FormLabel>
+                <input 
+                    type = 'number'
+                    step = 'any'
+                    placeholder = '0.00'
+                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
+                        formMethods.formState.errors.initialBalance ?
+                        'border-rose-400 focus:border-rose-500' :
+                        'border-slate-200 focus:border-indigo-500'
+                    }`}
+
+                    {
+                        ...formMethods.register('initialBalance', {
+                            required: 'Initial balance is required.',
+                            validate: value => value > 0 || 'Balance values cannot be zero or below.'
+                        })
+                    }
+                />
+
+                {
+                    formMethods.formState.errors.initialBalance && (
+                    <span className='text-rose-500 text-xs font-semibold mt-1 block'>
+                        {formMethods.formState.errors.initialBalance.message}
+                    </span>)
+                }
+            </div>
+        </FormModal>
     );
 };
 
