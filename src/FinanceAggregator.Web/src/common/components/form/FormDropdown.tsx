@@ -45,6 +45,7 @@ const FormDropdown: React.FC<FormDropdownProps> = ({
                             name = {name}
                             options = {options}
                             placeholder = {placeholder}
+                            required = {required}
                             selectedOption = {selectedOption}
                             onSelect = {(opt) => field.onChange(opt.value)}
                         />

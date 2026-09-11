@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { postNewTransaction } from '../../features/transactions/reducers/transactionSlice';
 
 import { TransactionType, type TransactionFormValues } from '../../app/models/transaction';
-import { FormModal } from '../../common/components/form';
+import { FormLabel, FormModal } from '../../common/components/form';
 
 
 interface Props {
@@ -69,15 +69,20 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
             onClose = {onModalClose}
             onSubmit = {onSubmit}
         >
-            <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
+            <div className = 'pb-2'>
+                <FormLabel
+                    htmlFor = 'amount'
+                    helperText = 'Input amount must be a number greater than zero'
+                    error = {formMethods.formState.errors.amount}
+                    required
+                >
                     Transaction Amount
-                </label>
+                </FormLabel>
                 <input 
-                    type='number'
-                    step='any'
-                    placeholder='0.00'
-                    className={`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
+                    type = 'number'
+                    step = 'any'
+                    placeholder = '0.00'
+                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
                         formMethods.formState.errors.amount ?
                         'border-rose-400 focus:border-rose-500' :
                         'border-slate-200 focus:border-indigo-500'
@@ -96,20 +101,24 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
 
                 {
                     formMethods.formState.errors.amount && (
-                    <span className='text-rose-500 text-xs font-semibold mt-1 block'>
+                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
                         {formMethods.formState.errors.amount.message}
                     </span>)
                 }
             </div>
 
-            <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
-                    Memo / Description (Optional)
-                </label>
+            <div className='pt-2'>
+                <FormLabel
+                    htmlFor = 'description'
+                    helperText = 'Optional; Limited to 250 characters'
+                    error = {formMethods.formState.errors.description}
+                >
+                    Memo/Description
+                </FormLabel>
                 <input 
-                    type='text'
-                    placeholder={isDeposit ? 'e.g., Funds deposit allocation' : 'e.g., Portfolio rebalancing transfer'}
-                    className={`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
+                    type = 'text'
+                    placeholder = {isDeposit ? 'e.g., Funds deposit allocation' : 'e.g., Portfolio rebalancing transfer'}
+                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
                         formMethods.formState.errors.description ?
                         'border-rose-400 focus:border-rose-500' :
                         'border-slate-200 focus:border-indigo-500'
@@ -127,7 +136,7 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
 
                 { 
                     formMethods.formState.errors.description && (
-                    <span className='text-rose-500 text-xs font-semibold mt-1 block'>
+                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
                         {formMethods.formState.errors.description.message}
                     </span>)
                 }
