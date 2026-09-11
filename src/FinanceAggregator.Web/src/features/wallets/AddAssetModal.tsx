@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 
 import { type AddAssetValues } from '../../app/models/wallet';
-import { FormDropdown, FormModal }  from '../../common/components/form';
+import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
 import { type DropdownOption } from '../../common/components/Dropdown';
 
 
@@ -86,10 +86,14 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
             onClose = {onModalClose}
             onSubmit = {onSubmit}
         >
-            <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
+            <div className = 'pb-2'>
+                <FormLabel
+                    htmlFor = 'ticker'
+                    error = {formMethods.formState.errors.ticker}
+                    required
+                >
                     Asset Ticker Symbol
-                </label>
+                </FormLabel>
                 <input 
                     type = 'text'
                     placeholder = 'e.g.: BTC, ETH, USD'
@@ -120,7 +124,7 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
 
             {
                 localeOptions.length > 0 && (
-                <div>
+                <div className = 'py-2'>
                     <FormDropdown
                         name = 'locale'
                         label = 'Region/Locale'
@@ -130,10 +134,15 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                 </div>)
             }
 
-            <div>
-                <label className='block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
+            <div className='pt-2'>
+                <FormLabel
+                    htmlFor = 'initialBalance'
+                    helperText = 'Input amount must be a number greater than zero'
+                    error = {formMethods.formState.errors.initialBalance}
+                    required
+                >
                     Initial Balance
-                </label>
+                </FormLabel>
                 <input 
                     type = 'number'
                     step = 'any'

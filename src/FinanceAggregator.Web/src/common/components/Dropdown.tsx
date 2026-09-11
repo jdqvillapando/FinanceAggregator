@@ -11,6 +11,7 @@ export interface DropdownOption<T = string | number> {
 export interface DropdownProps<T = string | number> {
     align?: 'left' | 'right';
     className?: string;
+    disabled?: boolean;
     errorMessage?: string;
     label?: string;
     name?: string;
@@ -24,6 +25,7 @@ export interface DropdownProps<T = string | number> {
 export const Dropdown = <T = string | number>({
     align = 'left',
     className = '',
+    disabled = false,
     errorMessage,
     label,
     name,
@@ -63,12 +65,18 @@ export const Dropdown = <T = string | number>({
         onSelect(option);
         setIsOpen(false);
     };
+
+    const textColor = disabled ?
+        'text-slate-200 cursor-not-allowed' :
+        (errorMessage && errorMessage !== '') ?
+            'text-rose-500' :
+            'text-slate-500';
     
     return (
         <div className = {`relative inline-block ${className}`} ref = {containerRef}>
             {
                 label && (
-                <label htmlFor = {name} className = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1'>
+                <label htmlFor = {name} className = {`block text-xs font-bold uppercase tracking-wider mb-1 ${textColor}`}>
                     {label}               
                     {
                         required && (
@@ -89,10 +97,10 @@ export const Dropdown = <T = string | number>({
                     'border-slate-200 focus:border-indigo-500'
                 }`}
             >
-                <span className={selectedOption ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                <span className = {selectedOption ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
-                <span className="text-xs text-slate-400">▼</span>
+                <span className = 'text-xs text-slate-400'>▼</span>
             </button>
             
             {
@@ -105,7 +113,7 @@ export const Dropdown = <T = string | number>({
             {
                 isOpen && (
                 <div
-                    className={`absolute z-50 mt-2 w-full max-h-40 overflow-y-auto rounded-xl bg-white p-1 shadow-xl border border-slate-100 dark:bg-slate-800 dark:border-slate-700 ${
+                    className = {`absolute z-50 mt-2 w-full max-h-40 overflow-y-auto rounded-xl bg-white p-1 shadow-xl border border-slate-100 dark:bg-slate-800 dark:border-slate-700 ${
                         align === 'right' ?
                         'right-0' :
                         'left-0'
