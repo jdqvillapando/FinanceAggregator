@@ -8,6 +8,8 @@ import { type AddAssetValues } from '../../app/models/wallet';
 import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
 import { type DropdownOption } from '../../common/components/Dropdown';
 
+import { getLocaleOptions, isTickerAvailable } from '../../common/utils/currencyFormatters';
+
 
 interface Props {
     isModalOpen: boolean;
@@ -23,6 +25,7 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
         mode: 'onTouched', // Triggers validation on blur
         defaultValues: {
             ticker: '',
+            locale: null,
             initialBalance: 0
         }
     });
@@ -33,23 +36,12 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
         defaultValue: ''
     });
 
-    // --------------------------------------------------------------------------------------
-    // For now, we'll use this for dropdown
-    const dummyUSDLocales = ['Timor Leste', 'United States of America'];
-    const dummyEURLocales = [
-        'Austria', 'Belgium', 'France', 'Germany', 'Greece', 'Ireland', 'Italy',
-        'Kosovo', 'Latvia', 'Lithuania', 'Luxembourg', 'Netherlands', 'Portugal', 'Spain'
-    ];
     const normalizedTicker = watchedTicker?.toUpperCase().trim() || '';
     let localeOptions: DropdownOption[] = [];
 
-    if (normalizedTicker === 'USD') {
-        localeOptions = dummyUSDLocales.map(locale => ({ label: locale, value: locale }));
+    if (isTickerAvailable(normalizedTicker)) {
+        localeOptions = getLocaleOptions(normalizedTicker);
     }
-    else if (normalizedTicker === 'EUR') {
-        localeOptions = dummyEURLocales.map(locale => ({ label: locale, value: locale }));
-    }
-    // --------------------------------------------------------------------------------------
 
     const onSubmit = async (data: AddAssetValues) => {
         setServerError(null);
@@ -59,6 +51,11 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                 walletId,
                 values: {
                     ticker: data.ticker.toUpperCase().trim(),
+                    locale: localeOptions.length === 0 ?
+                        null : (
+                            localeOptions.length === 1 ?
+                            localeOptions[0].value : 
+                            (data.locale || null)),
                     initialBalance: Number(data.initialBalance)
                 } as AddAssetValues
             };
@@ -123,7 +120,7 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
             </div>
 
             {
-                localeOptions.length > 0 && (
+                localeOptions.length > 1 && (
                 <div className = 'py-2'>
                     <FormDropdown
                         name = 'locale'
