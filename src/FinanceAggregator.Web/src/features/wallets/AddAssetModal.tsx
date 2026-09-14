@@ -8,7 +8,7 @@ import { type AddAssetValues } from '../../app/models/wallet';
 import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
 import { type DropdownOption } from '../../common/components/Dropdown';
 
-import { getLocaleOptions, isTickerAvailable } from '../../common/utils/currencyFormatters';
+import { getLocaleOptions, isTickerAvailable } from '../../common/utils/localization';
 
 
 interface Props {

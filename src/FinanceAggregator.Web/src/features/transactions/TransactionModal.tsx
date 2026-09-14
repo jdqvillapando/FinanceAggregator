@@ -65,7 +65,7 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
             methods = {formMethods}
             serverErrorsMsg = {serverError}
             submitLabel = 'Confirm'
-            title = {isDeposit ? 'Deposit Funds' : 'Withdraw Funds'}
+            title = {isDeposit ? `Deposit Funds (${ticker})` : `Withdraw Funds (${ticker})`}
             onClose = {onModalClose}
             onSubmit = {onSubmit}
         >

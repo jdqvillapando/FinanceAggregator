@@ -4,16 +4,17 @@ import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
 import { setTransactions, setLoading, selectTransactionsByAsset } from './reducers/transactionSlice';
 
 import agent from '../../app/api/agent';
-import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
+import { formatAssetDisplay } from '../../common/utils/localization';
 
 
 interface Props {
     walletId: string;
     assetId: string;
     ticker: string;
+    locale: string | null;
 };
 
-const TransactionHistoryList = ({ walletId, assetId, ticker }: Props) => {
+const TransactionHistoryList = ({ walletId, assetId, ticker, locale }: Props) => {
     const dispatch = useAppDispatch();
     const { loading } = useAppSelector(state => state.transactions);
     // THE FIX: Use the memoized selector and pass state along with the parameter dependency
@@ -52,7 +53,7 @@ const TransactionHistoryList = ({ walletId, assetId, ticker }: Props) => {
                         </div>
                         <div className={`font-black text-sm ${tr.amount > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
                             {/* We use the ticker passed as a prop since it's an asset-specific history */}
-                            {formatAssetDisplay(ticker, tr.amount)}
+                            {formatAssetDisplay(ticker, tr.amount, locale)}
                         </div>
                     </div>
                 )) :
