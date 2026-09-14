@@ -5,7 +5,7 @@ import { useAppSelector, useAppDispatch } from '../../app/store/configureStore';
 import { setWallets, setLoading, selectAllWallets, selectWalletsLoading } from './reducers/walletSlice';
 
 import agent from '../../app/api/agent';
-import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
+import { formatAssetDisplay } from '../../common/utils/localization';
 
 import { TransactionType } from '../../app/models/transaction';
 import TransactionModal from '../transactions/TransactionModal';
@@ -22,9 +22,9 @@ const Dashboard = () => {
     const loading = useAppSelector(selectWalletsLoading);
 
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
-    const [selectedAsset, setSelectedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null);
+    const [selectedAsset, setSelectedAsset] = useState<{ walletId: string, assetId: string, ticker: string } | null>(null);
     const [transactionModalType, setTransactionModalType] = useState<TransactionType>(TransactionType.Deposit);
-    const [focusedAsset, setFocusedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null); // Dual-Panel focus selection state
+    const [focusedAsset, setFocusedAsset] = useState<{ walletId: string, assetId: string, ticker: string, locale: string | null } | null>(null); // Dual-Panel focus selection state
     const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
     const [isRemoveAssetModalOpen, setIsRemoveAssetModalOpen] = useState(false);
     const [addAssetWalletId, setAddAssetWalletId] = useState<string>('');
@@ -90,7 +90,7 @@ const Dashboard = () => {
                                                     <div 
                                                         key = {asset.id} 
                                                         // CAPTURING INTERACTION LOCALLY INSTEAD OF FIRING ROUTER DISPATCHES
-                                                        onClick = {() => setFocusedAsset({ walletId: wallet.id, assetId: asset.id, ticker: asset.ticker })}
+                                                        onClick = {() => setFocusedAsset({ walletId: wallet.id, assetId: asset.id, ticker: asset.ticker, locale: asset.locale })}
                                                         className = {`p-5 rounded-xl border transition-all cursor-pointer group ${
                                                             isCardFocused ?
                                                                 'bg-indigo-50/50 border-indigo-300 shadow-sm ring-1 ring-indigo-100' :
@@ -106,7 +106,7 @@ const Dashboard = () => {
                                                                 <p className = 'text-[10px] font-mono text-slate-400 mt-2'>Asset ID: {asset.id.substring(0, 12)}...</p>
                                                             </div>
                                                             <span className = 'text-lg font-bold font-mono text-slate-900'>
-                                                                { formatAssetDisplay(asset.ticker, asset.balance) }
+                                                                { formatAssetDisplay(asset.ticker, asset.balance, asset.locale) }
                                                             </span>
                                                             <button
                                                                 type = 'button'
@@ -171,7 +171,8 @@ const Dashboard = () => {
                             <TransactionHistoryList 
                                 walletId = {focusedAsset.walletId} 
                                 assetId = {focusedAsset.assetId} 
-                                ticker = {focusedAsset.ticker} 
+                                ticker = {focusedAsset.ticker}
+                                locale = {focusedAsset.locale}
                             />
                         ) :
                         (
