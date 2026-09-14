@@ -3,7 +3,7 @@ import { HttpTransportType, HubConnection, HubConnectionBuilder, LogLevel } from
 
 import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
 import { updateAssetBalance } from '../../features/wallets/reducers/walletSlice';
-import { GATEWAY_URL } from '../constants';
+import { GATEWAY_URL } from '../utils/constants';
 
 
 export const useWalletHub = () => {

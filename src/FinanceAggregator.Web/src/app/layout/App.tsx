@@ -5,7 +5,7 @@ import { fetchCurrentUser } from '../../features/auth/reducers/authSlice';
 
 import { useWalletHub } from '../../common/hooks/useWalletHub';
 
-import Navbar from '../../common/components/Navbar';
+import { Navbar } from '../../common/components';
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
 import Dashboard from '../../features/wallets/Dashboard';

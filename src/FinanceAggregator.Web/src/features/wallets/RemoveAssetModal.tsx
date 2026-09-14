@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAppDispatch } from '../../app/store/configureStore';
 import { removeAsset } from './reducers/walletSlice';
 
-import { Modal } from '../../common/components/Modal';
+import { Modal } from '../../common/components';
 
 
 interface Props {
