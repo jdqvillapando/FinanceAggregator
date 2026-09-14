@@ -5,8 +5,8 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 
 import { type AddAssetValues } from '../../app/models/wallet';
-import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
-import { type DropdownOption } from '../../common/components/Dropdown';
+import { FormDropdown, FormLabel, FormModal }  from '../../common/components/forms';
+import { type DropdownOption } from '../../common/components';
 
 import { getLocaleOptions, isTickerAvailable } from '../../common/utils/localization';
 

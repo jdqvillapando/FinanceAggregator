@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { postNewTransaction } from '../../features/transactions/reducers/transactionSlice';
 
 import { TransactionType, type TransactionFormValues } from '../../app/models/transaction';
-import { FormLabel, FormModal } from '../../common/components/form';
+import { FormLabel, FormModal } from '../../common/components/forms';
 
 
 interface Props {
