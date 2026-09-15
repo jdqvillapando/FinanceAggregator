@@ -67,10 +67,16 @@ export const Dropdown = <T = string | number>({
     };
 
     const textColor = disabled ?
-        'text-slate-200 cursor-not-allowed' :
+        'text-slate-300 cursor-not-allowed' :
         (errorMessage && errorMessage !== '') ?
             'text-rose-500' :
             'text-slate-500';
+    
+    const borderColor = disabled ?
+        'text-slate-400 bg-slate-100 cursor-not-allowed' :
+        errorMessage ?
+            'text-slate-800 bg-slate-50 border-rose-400 focus:border-rose-500' :
+            'text-slate-800 bg-slate-50 border-slate-200 focus:border-indigo-500';
     
     return (
         <div className = {`relative inline-block ${className}`} ref = {containerRef}>
@@ -90,14 +96,10 @@ export const Dropdown = <T = string | number>({
             <button
                 type = 'button'
                 id = {name}
-                onClick = {() => setIsOpen((prev) => !prev)}
-                className = {`flex w-full items-center justify-between text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors ${
-                    errorMessage ?
-                    'border-rose-400 focus:border-rose-500' :
-                    'border-slate-200 focus:border-indigo-500'
-                }`}
+                onClick = {() => { if (!disabled) { setIsOpen((prev) => !prev) }}}
+                className = {`flex w-full items-center justify-between text-sm p-3 border rounded-xl outline-none transition-colors ${borderColor}`}
             >
-                <span className = {selectedOption ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                <span className = {selectedOption ? 'text-slate-800' : 'text-slate-400'}>
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <span className = 'text-xs text-slate-400'>▼</span>

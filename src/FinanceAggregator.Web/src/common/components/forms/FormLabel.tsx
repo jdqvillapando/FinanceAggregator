@@ -2,7 +2,7 @@ import React, { type LabelHTMLAttributes, type ReactNode } from 'react';
 import type { FieldError } from 'react-hook-form';
 
 
-export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
+interface FormLabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
     /** The text or elements to display as the main label */
     children: ReactNode;
 
@@ -25,7 +25,7 @@ export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
     required?: boolean;
 }
 
-export const Label: React.FC<LabelProps> = ({
+const FormLabel: React.FC<FormLabelProps> = ({
     children,
     className = '',
     disabled = false,
@@ -37,7 +37,7 @@ export const Label: React.FC<LabelProps> = ({
 }) => {
     // Dynamic color resolution based on state
     const textColor = disabled ?
-        'text-slate-200 cursor-not-allowed' :
+        'text-slate-300 cursor-not-allowed' :
         error ?
             'text-rose-500' :
             'text-slate-500';
@@ -72,4 +72,4 @@ export const Label: React.FC<LabelProps> = ({
 };
 
 
-export default Label;
+export default FormLabel;
