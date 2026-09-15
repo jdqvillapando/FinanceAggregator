@@ -5,6 +5,7 @@ import { Dropdown, type DropdownOption } from '../Dropdown';
 
 
 interface FormDropdownProps {
+    disabled?: boolean;
     label?: string;
     name: string;
     options: DropdownOption[];
@@ -14,6 +15,7 @@ interface FormDropdownProps {
 }
 
 const FormDropdown: React.FC<FormDropdownProps> = ({
+    disabled = false,
     label,
     name,
     placeholder = 'Select an option',
@@ -40,6 +42,7 @@ const FormDropdown: React.FC<FormDropdownProps> = ({
                     
                     return (
                         <Dropdown
+                            disabled = {disabled}
                             errorMessage = {errorMessage}
                             label = {label}
                             name = {name}
