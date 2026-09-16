@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { FormProvider, type FieldValues, type FormState, type UseFormReturn } from 'react-hook-form';
 
 import { Modal, type ModalProps } from '../Modal';
+import FormButton from './FormButton';
 
 
 interface FormModalProps<TFieldValues extends FieldValues> extends Omit<ModalProps, 'children'> {
@@ -15,6 +16,8 @@ interface FormModalProps<TFieldValues extends FieldValues> extends Omit<ModalPro
     methods: UseFormReturn<TFieldValues>;
     serverErrorsMsg?: string | null;
     submitLabel?: string;
+    submitButtonVariant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'none';
+    cancelButtonVariant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'none';
     onSubmit: (data: TFieldValues) => void | Promise<void>;
 }
 
@@ -26,6 +29,8 @@ const FormModal = <TFieldValues extends FieldValues>(
         serverErrorsMsg = null,
         submitLabel = 'Submit',
         title,
+        submitButtonVariant = 'primary',
+        cancelButtonVariant = 'secondary',
         onClose,
         onSubmit
     }: FormModalProps<TFieldValues>
@@ -50,22 +55,22 @@ const FormModal = <TFieldValues extends FieldValues>(
                     </div>
                     
                     <div className = 'flex justify-end space-x-3 pt-4 border-t border-slate-100'>
-                        <button
+                        <FormButton
                             type = 'button'
                             onClick = {onClose}
                             disabled = {isSubmitting}
-                            className = 'px-4 py-2 text-sm font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50'
+                            variant = {cancelButtonVariant}
                         >
                             Cancel
-                        </button>
-                        
-                        <button
-                            type = 'submit'
+                        </FormButton>
+
+                        <FormButton
                             disabled = {isSubmitting}
-                            className = 'px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 rounded-xl shadow-sm shadow-indigo-100 transition-colors flex items-center justify-center'
+                            variant = {submitButtonVariant}
+                            showSpinner
                         >
                             { isSubmitting ? 'Please wait...' : submitLabel }
-                        </button>
+                        </FormButton>
                     </div>
                 </form>
             </FormProvider>
