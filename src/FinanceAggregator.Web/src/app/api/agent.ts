@@ -3,7 +3,7 @@ import type { Result } from '../models/apiResponse';
 import type { AuthResponse, LoginCredentials, UserFormValues } from '../models/user';
 import type { AddAssetValues, Asset, Wallet } from '../models/wallet';
 import type { Transaction, TransactionFormValues, TransactionResponse } from '../models/transaction';
-import { GATEWAY_URL } from '../../common/constants';
+import { GATEWAY_URL } from '../../common/utils/constants';
 
 
 // Use an instance instead of global defaults

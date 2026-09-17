@@ -138,14 +138,15 @@ public class WalletsController : ControllerBase
         if (wallet == null) return NotFound(Result<Asset>.Failure("Wallet not found or you don't have access."));
 
         // Check if asset already exists (don't want two BTC accounts in one wallet)
-        if (wallet.Assets.Any(a => a.Ticker.ToUpper() == assetDto.Ticker.ToUpper()))
+        if (wallet.Assets.Any(a => a.Ticker.Trim().ToUpper() == assetDto.Ticker.Trim().ToUpper()))
             return BadRequest(Result<Asset>.Failure("Asset already exists in this wallet."));
 
         // Add the asset
         var asset = new Asset
         {
             Id = Guid.NewGuid(),
-            Ticker = assetDto.Ticker.ToUpper(),
+            Ticker = assetDto.Ticker.Trim().ToUpper(),
+            Locale = assetDto.Locale?.Trim(),
             Balance = assetDto.InitialBalance,
             WalletId = walletId
         };

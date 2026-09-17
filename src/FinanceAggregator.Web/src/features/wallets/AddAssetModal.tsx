@@ -5,8 +5,10 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { addNewAsset } from './reducers/walletSlice';
 
 import { type AddAssetValues } from '../../app/models/wallet';
-import { FormDropdown, FormLabel, FormModal }  from '../../common/components/form';
-import { type DropdownOption } from '../../common/components/Dropdown';
+import { FormDropdown, FormInput, FormLabel, FormModal }  from '../../common/components/forms';
+import { type DropdownOption } from '../../common/components';
+
+import { getLocaleOptions, isTickerAvailable } from '../../common/utils/localization';
 
 
 interface Props {
@@ -23,6 +25,7 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
         mode: 'onTouched', // Triggers validation on blur
         defaultValues: {
             ticker: '',
+            locale: null,
             initialBalance: 0
         }
     });
@@ -33,23 +36,12 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
         defaultValue: ''
     });
 
-    // --------------------------------------------------------------------------------------
-    // For now, we'll use this for dropdown
-    const dummyUSDLocales = ['Timor Leste', 'United States of America'];
-    const dummyEURLocales = [
-        'Austria', 'Belgium', 'France', 'Germany', 'Greece', 'Ireland', 'Italy',
-        'Kosovo', 'Latvia', 'Lithuania', 'Luxembourg', 'Netherlands', 'Portugal', 'Spain'
-    ];
     const normalizedTicker = watchedTicker?.toUpperCase().trim() || '';
     let localeOptions: DropdownOption[] = [];
 
-    if (normalizedTicker === 'USD') {
-        localeOptions = dummyUSDLocales.map(locale => ({ label: locale, value: locale }));
+    if (isTickerAvailable(normalizedTicker)) {
+        localeOptions = getLocaleOptions(normalizedTicker);
     }
-    else if (normalizedTicker === 'EUR') {
-        localeOptions = dummyEURLocales.map(locale => ({ label: locale, value: locale }));
-    }
-    // --------------------------------------------------------------------------------------
 
     const onSubmit = async (data: AddAssetValues) => {
         setServerError(null);
@@ -59,6 +51,11 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                 walletId,
                 values: {
                     ticker: data.ticker.toUpperCase().trim(),
+                    locale: localeOptions.length === 0 ?
+                        null : (
+                            localeOptions.length === 1 ?
+                            localeOptions[0].value : 
+                            (data.locale || null)),
                     initialBalance: Number(data.initialBalance)
                 } as AddAssetValues
             };
@@ -94,36 +91,23 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                 >
                     Asset Ticker Symbol
                 </FormLabel>
-                <input 
+                <FormInput
+                    name = 'ticker'
                     type = 'text'
                     placeholder = 'e.g.: BTC, ETH, USD'
-                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                        formMethods.formState.errors.ticker ?
-                        'border-rose-400 focus:border-rose-500' :
-                        'border-slate-200 focus:border-indigo-500'
-                    }`}
-
-                    {
-                        ...formMethods.register('ticker', {
+                    rules = {{
                             required: 'Ticker symbol is required.',
                             maxLength: {
                                 value: 10,
                                 message: 'Ticker cannot exceed 10 characters.'
                             }
-                        })
-                    }
+                        }}
+                    errorMessage = {formMethods.formState.errors.ticker?.message}
                 />
-
-                {
-                    formMethods.formState.errors.ticker && (
-                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
-                        {formMethods.formState.errors.ticker.message}
-                    </span>)
-                }
             </div>
 
             {
-                localeOptions.length > 0 && (
+                localeOptions.length > 1 && (
                 <div className = 'py-2'>
                     <FormDropdown
                         name = 'locale'
@@ -143,30 +127,17 @@ const AddAssetModal = ({ isModalOpen, walletId, onModalClose }: Props) => {
                 >
                     Initial Balance
                 </FormLabel>
-                <input 
+                <FormInput
+                    name = 'initialBalance'
                     type = 'number'
                     step = 'any'
                     placeholder = '0.00'
-                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                        formMethods.formState.errors.initialBalance ?
-                        'border-rose-400 focus:border-rose-500' :
-                        'border-slate-200 focus:border-indigo-500'
-                    }`}
-
-                    {
-                        ...formMethods.register('initialBalance', {
-                            required: 'Initial balance is required.',
-                            validate: value => value > 0 || 'Balance values cannot be zero or below.'
-                        })
-                    }
+                    rules = {{
+                        required: 'Initial balance is required.',
+                        validate: value => value > 0 || 'Balance values cannot be zero or below.'
+                    }}
+                    errorMessage = {formMethods.formState.errors.initialBalance?.message}
                 />
-
-                {
-                    formMethods.formState.errors.initialBalance && (
-                    <span className='text-rose-500 text-xs font-semibold mt-1 block'>
-                        {formMethods.formState.errors.initialBalance.message}
-                    </span>)
-                }
             </div>
         </FormModal>
     );
