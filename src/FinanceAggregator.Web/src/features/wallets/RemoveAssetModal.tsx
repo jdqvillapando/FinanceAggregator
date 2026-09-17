@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAppDispatch } from '../../app/store/configureStore';
 import { removeAsset } from './reducers/walletSlice';
 
-import { Modal } from '../../common/components/Modal';
+import { Button, Modal } from '../../common/components';
 
 
 interface Props {
@@ -57,23 +57,24 @@ const RemoveAssetModal = ({ isModalOpen, walletId, ticker, onModalClose }: Props
             }
 
             <div className = 'flex justify-end space-x-3 pt-3 border-t border-slate-100'>
-                <button
+                <Button
                     type = 'button'
                     onClick = {onModalClose}
                     disabled = {isSubmitting}
-                    className = 'px-4 py-2 text-sm font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50'
+                    variant = 'secondary'
                 >
                     Cancel
-                </button>
+                </Button>
 
-                <button
+                <Button
                     type = 'button'
                     onClick = {handleDelete}
                     disabled = {isSubmitting}
-                    className = 'px-5 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 rounded-xl shadow-sm shadow-rose-100 transition-colors flex items-center justify-center'
+                    variant = 'danger'
+                    showSpinner
                 >
                     { isSubmitting ? 'Removing...' : 'Confirm' }
-                </button>
+                </Button>
             </div>
         </Modal>
     );

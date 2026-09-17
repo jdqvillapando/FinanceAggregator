@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../app/store/configureStore';
 import { postNewTransaction } from '../../features/transactions/reducers/transactionSlice';
 
 import { TransactionType, type TransactionFormValues } from '../../app/models/transaction';
-import { FormLabel, FormModal } from '../../common/components/form';
+import { FormInput, FormLabel, FormModal } from '../../common/components/forms';
 
 
 interface Props {
@@ -65,7 +65,8 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
             methods = {formMethods}
             serverErrorsMsg = {serverError}
             submitLabel = 'Confirm'
-            title = {isDeposit ? 'Deposit Funds' : 'Withdraw Funds'}
+            title = {isDeposit ? `Deposit Funds (${ticker})` : `Withdraw Funds (${ticker})`}
+            submitButtonVariant = {isDeposit ? 'success' : 'danger'}
             onClose = {onModalClose}
             onSubmit = {onSubmit}
         >
@@ -78,33 +79,20 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
                 >
                     Transaction Amount
                 </FormLabel>
-                <input 
+                <FormInput
+                    name = 'amount'
                     type = 'number'
                     step = 'any'
                     placeholder = '0.00'
-                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                        formMethods.formState.errors.amount ?
-                        'border-rose-400 focus:border-rose-500' :
-                        'border-slate-200 focus:border-indigo-500'
-                    }`}
-
-                    {
-                        ...formMethods.register('amount', {
-                            required: 'Amount is explicitly required.',
-                            min: {
-                                value: 0.01,
-                                message: 'Amount must be greater than zero.'
-                            }
-                        })
-                    }
+                    rules = {{
+                        required: 'Amount is explicitly required.',
+                        min: {
+                            value: 0.01,
+                            message: 'Amount must be greater than zero.'
+                        }
+                    }}
+                    errorMessage = {formMethods.formState.errors.amount?.message}
                 />
-
-                {
-                    formMethods.formState.errors.amount && (
-                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
-                        {formMethods.formState.errors.amount.message}
-                    </span>)
-                }
             </div>
 
             <div className='pt-2'>
@@ -115,31 +103,18 @@ const TransactionModal = ({ isModalOpen, walletId, assetId, ticker, type, onModa
                 >
                     Memo/Description
                 </FormLabel>
-                <input 
+                <FormInput
+                    name = 'description'
                     type = 'text'
                     placeholder = {isDeposit ? 'e.g., Funds deposit allocation' : 'e.g., Portfolio rebalancing transfer'}
-                    className = {`w-full text-sm p-3 bg-slate-50 border rounded-xl outline-none transition-colors font-medium text-slate-800 ${
-                        formMethods.formState.errors.description ?
-                        'border-rose-400 focus:border-rose-500' :
-                        'border-slate-200 focus:border-indigo-500'
-                    }`}
-
-                    {
-                        ...formMethods.register('description', {
-                            maxLength: {
-                                value: 250,
-                                message: 'Description cannot exceed 250 characters.'
-                            }
-                        })
-                    }
+                    rules = {{
+                        maxLength: {
+                            value: 250,
+                            message: 'Description cannot exceed 250 characters.'
+                        }
+                    }}
+                    errorMessage = {formMethods.formState.errors.description?.message}
                 />
-
-                { 
-                    formMethods.formState.errors.description && (
-                    <span className = 'text-rose-500 text-xs font-semibold mt-1 block'>
-                        {formMethods.formState.errors.description.message}
-                    </span>)
-                }
             </div>
         </FormModal>
     );

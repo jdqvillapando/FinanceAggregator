@@ -5,7 +5,8 @@ import { useAppSelector, useAppDispatch } from '../../app/store/configureStore';
 import { setWallets, setLoading, selectAllWallets, selectWalletsLoading } from './reducers/walletSlice';
 
 import agent from '../../app/api/agent';
-import { formatAssetDisplay } from '../../common/utils/currencyFormatters';
+import { Button } from '../../common/components';
+import { formatAssetDisplay } from '../../common/utils/localization';
 
 import { TransactionType } from '../../app/models/transaction';
 import TransactionModal from '../transactions/TransactionModal';
@@ -22,9 +23,9 @@ const Dashboard = () => {
     const loading = useAppSelector(selectWalletsLoading);
 
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
-    const [selectedAsset, setSelectedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null);
+    const [selectedAsset, setSelectedAsset] = useState<{ walletId: string, assetId: string, ticker: string } | null>(null);
     const [transactionModalType, setTransactionModalType] = useState<TransactionType>(TransactionType.Deposit);
-    const [focusedAsset, setFocusedAsset] = useState<{walletId: string, assetId: string, ticker: string} | null>(null); // Dual-Panel focus selection state
+    const [focusedAsset, setFocusedAsset] = useState<{ walletId: string, assetId: string, ticker: string, locale: string | null } | null>(null); // Dual-Panel focus selection state
     const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
     const [isRemoveAssetModalOpen, setIsRemoveAssetModalOpen] = useState(false);
     const [addAssetWalletId, setAddAssetWalletId] = useState<string>('');
@@ -68,19 +69,21 @@ const Dashboard = () => {
                                             <p className = 'text-[11px] font-mono text-slate-400'>Wallet ID: {wallet.id.substring(0, 12)}...</p>
                                         </div>
 
-                                        <button 
+                                        <Button 
                                             onClick = {(e) => {
                                                 e.stopPropagation();
                                                 setAddAssetWalletId(wallet.id);
                                                 setIsAddAssetModalOpen(true);
                                             }}
                                             className = 'text-xs bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 font-bold px-3 py-1.5 rounded-lg transition-colors border border-slate-200'
+                                            variant = 'none'
+                                            overrideBaseStyling
                                         >
                                             <span className = 'inline-flex items-center'><Plus size = {15} />Add Asset</span>
-                                        </button>
+                                        </Button>
                                     </div>
 
-                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className = 'grid grid-cols-1 md:grid-cols-2 gap-4'>
                                     {
                                         wallet.assets && wallet.assets.length > 0 ? (
                                             wallet.assets.map((asset) => {
@@ -90,7 +93,7 @@ const Dashboard = () => {
                                                     <div 
                                                         key = {asset.id} 
                                                         // CAPTURING INTERACTION LOCALLY INSTEAD OF FIRING ROUTER DISPATCHES
-                                                        onClick = {() => setFocusedAsset({ walletId: wallet.id, assetId: asset.id, ticker: asset.ticker })}
+                                                        onClick = {() => setFocusedAsset({ walletId: wallet.id, assetId: asset.id, ticker: asset.ticker, locale: asset.locale })}
                                                         className = {`p-5 rounded-xl border transition-all cursor-pointer group ${
                                                             isCardFocused ?
                                                                 'bg-indigo-50/50 border-indigo-300 shadow-sm ring-1 ring-indigo-100' :
@@ -106,35 +109,40 @@ const Dashboard = () => {
                                                                 <p className = 'text-[10px] font-mono text-slate-400 mt-2'>Asset ID: {asset.id.substring(0, 12)}...</p>
                                                             </div>
                                                             <span className = 'text-lg font-bold font-mono text-slate-900'>
-                                                                { formatAssetDisplay(asset.ticker, asset.balance) }
+                                                                { formatAssetDisplay(asset.ticker, asset.balance, asset.locale) }
                                                             </span>
-                                                            <button
-                                                                type = 'button'
+                                                            <Button
                                                                 onClick = {(e) => {
                                                                     e.stopPropagation();
                                                                     setRemoveAsset({ walletId: asset.walletId, ticker: asset.ticker });
                                                                     setIsRemoveAssetModalOpen(true);
                                                                 }}
-                                                                className= 'p-1 text-slate-400 hover:text-rose-500 transition-colors'
+                                                                className = 'p-1 text-slate-400 hover:text-rose-500 transition-colors'
                                                                 title = {`Remove ${asset.ticker}`}
+                                                                variant = 'none'
+                                                                overrideBaseStyling
                                                             >
                                                                 <Trash2 size = {20}/>
-                                                            </button>
+                                                            </Button>
                                                         </div>
 
                                                         <div className = 'grid grid-cols-2 gap-2 mt-2' onClick = {(e) => e.stopPropagation()}>
-                                                            <button 
+                                                            <Button 
                                                                 onClick = {() => openModal(wallet.id, asset.id, asset.ticker, TransactionType.Deposit)}
                                                                 className = 'py-1.5 px-3 bg-white hover:bg-emerald-50 text-xs font-semibold text-emerald-600 rounded-lg border border-slate-200 hover:border-emerald-200 transition-colors'
+                                                                variant = 'none'
+                                                                overrideBaseStyling
                                                             >
                                                                 Deposit
-                                                            </button>
-                                                            <button 
+                                                            </Button>
+                                                            <Button 
                                                                 onClick = {() => openModal(wallet.id, asset.id, asset.ticker, TransactionType.Withdrawal)}
                                                                 className = 'py-1.5 px-3 bg-white hover:bg-rose-50 text-xs font-semibold text-rose-600 rounded-lg border border-slate-200 hover:border-rose-200 transition-colors'
+                                                                variant = 'none'
+                                                                overrideBaseStyling
                                                             >
                                                                 Withdraw
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     </div>
                                                 );
@@ -171,7 +179,8 @@ const Dashboard = () => {
                             <TransactionHistoryList 
                                 walletId = {focusedAsset.walletId} 
                                 assetId = {focusedAsset.assetId} 
-                                ticker = {focusedAsset.ticker} 
+                                ticker = {focusedAsset.ticker}
+                                locale = {focusedAsset.locale}
                             />
                         ) :
                         (
