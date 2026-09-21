@@ -1,1 +1,0 @@
-export const GATEWAY_URL = 'http://localhost:5153';
