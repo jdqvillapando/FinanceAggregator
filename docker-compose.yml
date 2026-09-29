@@ -7,16 +7,16 @@ services:
     container_name: fa_postgres
     restart: always
     environment:
-      - POSTGRES_USER=faadmin
-      - POSTGRES_PASSWORD=Ladmin01!
-      - POSTGRES_DB=fadb
+      - POSTGRES_USER=${POSTGRES_USER:-faadmin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-fadb}
     ports:
       - "5432:5432"
     volumes:
       - postgres_master_data:/var/lib/postgresql/data
     # This tells Docker how to test if the database inside is actually ready for traffic
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U faadmin -d fadb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-faadmin} -d ${POSTGRES_DB:-fadb}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,6 +27,9 @@ services:
     image: rabbitmq:3.12-management-alpine
     container_name: fa_rabbitmq
     restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -59,8 +62,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5205 # Binds to internal container port 5205
-      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=identity_schema
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB:-fadb};Username=${POSTGRES_USER:-faadmin};Password=${POSTGRES_PASSWORD};SearchPath=identity_schema
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
       - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=${RABBITMQ_USER}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
@@ -79,9 +87,15 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5202 # Binds to internal container port 5202
-      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=fadb;Username=faadmin;Password=Ladmin01!;SearchPath=wallet_schema
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB:-fadb};Username=${POSTGRES_USER:-faadmin};Password=${POSTGRES_PASSWORD};SearchPath=wallet_schema
+      - ConnectionStrings__Redis=${REDIS_PORT}
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
       - Redis__Host=redis
       - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=${RABBITMQ_USER}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
@@ -104,10 +118,33 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5153 # App listens on port 5153 inside the container
+      - JwtSettings__Key=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
+      ####
+      - ReverseProxy__Routes__identityRoute__ClusterId=identityCluster
+      - ReverseProxy__Routes__identityRoute__Match__Path=/api/v1/auth/{**remainder}
+      - ReverseProxy__Routes__identityRoute__Transforms__0__PathPattern=api/v1/auth/{**remainder}
+      - ReverseProxy__Routes__identityRoute__Transforms__1__RequestHeader=X-Gateway-Enforced
+      - ReverseProxy__Routes__identityRoute__Transforms__1__Set=true
+      ####
+      - ReverseProxy__Routes__walletRoute__ClusterId=walletCluster
+      - ReverseProxy__Routes__walletRoute__AuthorizationPolicy=Default
+      - ReverseProxy__Routes__walletRoute__Match__Path=/api/v1/wallets/{**remainder}
+      - ReverseProxy__Routes__walletRoute__Transforms__0__PathPattern=api/v1/wallets/{**remainder}
+      ####
+      - ReverseProxy__Routes__walletHubRoute__ClusterId=walletCluster
+      - ReverseProxy__Routes__walletHubRoute__CorsPolicy=FrontendPolicy
+      - ReverseProxy__Routes__walletHubRoute__Match__Path=/hubs/wallets/{**remainder}
+      - ReverseProxy__Routes__walletHubRoute__Transforms__0__PathPattern=hubs/wallets/{**remainder}
+      ####
+      # - ReverseProxy__Clusters__identityCluster__Destinations__destination1__Address=http://localhost:5205
+      # - ReverseProxy__Clusters__walletCluster__Destinations__destination1__Address=http://localhost:5202
+
     command: >
       dotnet YarpGateway.dll 
-      --ReverseProxy:Clusters:identity-cluster:Destinations:destination1:Address=http://identity-service:5205
-      --ReverseProxy:Clusters:wallet-cluster:Destinations:destination1:Address=http://wallet-service:5202
+      --ReverseProxy:Clusters:identityCluster:Destinations:destination1:Address=http://identity-service:5205
+      --ReverseProxy:Clusters:walletCluster:Destinations:destination1:Address=http://wallet-service:5202
     depends_on:
       - identity-service
       - wallet-service
@@ -125,6 +162,8 @@ services:
     restart: unless-stopped
     environment:
       - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     depends_on:
       rabbitmq:
         condition: service_started

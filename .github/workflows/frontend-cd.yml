@@ -1,0 +1,47 @@
+name: Frontend CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/FinanceAggregator.Web/**'
+      - '.github/workflows/frontend-cd.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'src/FinanceAggregator.Web/package-lock.json'
+
+      - name: Install & Build Application
+        run: |
+          npm ci
+          npm run build
+        working-directory: src/FinanceAggregator.Web
+        env:
+          VITE_API_URL: ${{ secrets.AZURE_CAPP_GATEWAY_URL }}
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_DEPLOYMENT_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "src/FinanceAggregator.Web" # Source code directory containing package.json
+          output_location: "dist"                  # Directory compiled on-the-fly by npm run build
+          skip_app_build: true                     # Bypasses Oryx; publishes pre-compiled Vite binaries

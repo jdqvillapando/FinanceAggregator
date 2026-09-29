@@ -2,20 +2,23 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
-using Yarp.ReverseProxy.Transforms;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS (Essential for Frontend phase)
+// Add CORS (Essential for Frontend)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
-    {
-        policy.WithOrigins("http://localhost:3000") // The future React port
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+    {        
+        policy.SetIsOriginAllowed(origin =>
+        {
+            var host = new Uri(origin).Host;
+            return host == "localhost" || host.EndsWith(".azurestaticapps.net");
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
