@@ -1,0 +1,15 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every 5 days
+    - cron: '0 0 */5 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database via REST API
+        run: |
+          curl -i -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" -H "apikey: ${{ secrets.SUPABASE_SECRET_KEY }}" -H "Authorization: Bearer ${{ secrets.SUPABASE_SECRET_KEY }}"
