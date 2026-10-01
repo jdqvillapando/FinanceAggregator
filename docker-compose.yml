@@ -55,8 +55,8 @@ services:
   # =======================================================================
   identity-service:
     build:
-      context: ./src/IdentityService
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/IdentityService/Dockerfile
     container_name: fa_identity
     restart: unless-stopped
     environment:
@@ -80,8 +80,8 @@ services:
 
   wallet-service:
     build:
-      context: ./src/WalletService
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/WalletService/Dockerfile
     container_name: fa_wallet
     restart: unless-stopped
     environment:
@@ -110,8 +110,8 @@ services:
 
   yarp-gateway:
     build:
-      context: ./src/YarpGateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/YarpGateway/Dockerfile
     container_name: fa_gateway
     restart: unless-stopped
     ports:
@@ -157,8 +157,8 @@ services:
   # =======================================================================
   notification-service:
     build:
-      context: ./src/NotificationService
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/NotificationService/Dockerfile
     container_name: fa_notification
     restart: unless-stopped
     environment:
