@@ -35,7 +35,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_GATEWAY_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE_NAME -f src/YarpGateway/Dockerfile .
+          docker build -t $IMAGE_NAME -f ./src/YarpGateway/Dockerfile ./src/YarpGateway
           docker push $IMAGE_NAME
 
       # 4. Deploy Image from Docker Hub to Azure Container Apps

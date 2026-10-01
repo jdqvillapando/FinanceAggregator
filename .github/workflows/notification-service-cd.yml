@@ -32,7 +32,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_NOTIFICATION_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE_NAME -f src/NotificationService/Dockerfile .
+          docker build -t $IMAGE_NAME -f ./src/NotificationService/Dockerfile ./src/NotificationService
           docker push $IMAGE_NAME
 
       - name: Deploy to Azure Container Apps
