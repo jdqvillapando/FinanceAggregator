@@ -1,17 +1,17 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+WORKDIR /src
 
-# Copy solution structures and restore dependencies
+# Copy project file assuming context is src/NotificationService or root
 COPY ["NotificationService.csproj", "./"]
 RUN dotnet restore "NotificationService.csproj"
 
-# Copy the rest of the source code and compile
+# Copy all files from the local directory and build
 COPY . .
-RUN dotnet publish "NotificationService.csproj" -c Release -o /app/out
+RUN dotnet build "NotificationService.csproj" -c Release -o /app/build
+RUN dotnet publish "NotificationService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
 
-COPY --from=build /app/out .
-
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "NotificationService.dll"]
