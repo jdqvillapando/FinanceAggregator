@@ -96,6 +96,7 @@ services:
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Username=${RABBITMQ_USER}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+      - HttpClientBaseAdress=${WALLET_SVC_HTTP_CLIENT_BASE_ADDR:-localhost}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
