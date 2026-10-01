@@ -2,11 +2,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy project file assuming context is src/YarpGateway or root
-COPY ["YarpGateway.csproj", "./"]
-RUN dotnet restore "YarpGateway.csproj"
+COPY ["src/YarpGateway/YarpGateway.csproj", "src/YarpGateway/"]
+RUN dotnet restore "src/YarpGateway/YarpGateway.csproj"
 
 # Copy all files from the local directory and build
 COPY . .
+WORKDIR "/src/src/YarpGateway"
 RUN dotnet build "YarpGateway.csproj" -c Release -o /app/build
 RUN dotnet publish "YarpGateway.csproj" -c Release -o /app/publish /p:UseAppHost=false
 

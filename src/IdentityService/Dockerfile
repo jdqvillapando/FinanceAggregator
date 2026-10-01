@@ -2,11 +2,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy project file assuming context is src/IdentityService or root
-COPY ["IdentityService.csproj", "./"]
-RUN dotnet restore "IdentityService.csproj"
+COPY ["src/IdentityService/IdentityService.csproj", "src/IdentityService/"]
+RUN dotnet restore "src/IdentityService/IdentityService.csproj"
 
 # Copy all files from the local directory and build
 COPY . .
+WORKDIR "/src/src/IdentityService"
 RUN dotnet build "IdentityService.csproj" -c Release -o /app/build
 RUN dotnet publish "IdentityService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
