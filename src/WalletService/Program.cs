@@ -97,8 +97,9 @@ builder.Services
         "IdentityServiceClient",
         client =>
         {
+            var baseAddress = builder.Configuration["HttpClientBaseAddress"] ?? "localhost";
             // Point this to your internal container gateway or endpoint
-            client.BaseAddress = new Uri("http://identity-service:5205/"); 
+            client.BaseAddress = new Uri(baseAddress);
             client.Timeout = TimeSpan.FromSeconds(10);
         }
     )
