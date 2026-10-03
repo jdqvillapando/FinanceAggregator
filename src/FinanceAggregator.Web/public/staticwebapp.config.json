@@ -1,14 +1,22 @@
 {
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
+      "/api/*",
       "/assets/*",
-      "/images/*.{png,jpg,gif,svg}",
       "/css/*",
-      "*.js",
+      "/images/*.{png,jpg,jpeg,gif,svg}",
+      "/*.css",
+      "/*.ico",
+      "/*.gif",
+      "/*.js",
       "/*.json",
-      "/favicon.svg",
-      "*.css"
+      "/*.jpeg",
+      "/*.jpg",
+      "/*.mjs",
+      "/*.png",
+      "/*.svg"
     ]
   },
   "responseOverrides": {
