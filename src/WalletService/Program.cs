@@ -157,10 +157,14 @@ builder.Services.AddMassTransit(x =>
         // Dynamic Host Injection
         // In Docker, RabbitMQ:Host is reinterpreted as RabbitMQ__Host
         var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
-        cfg.Host(rabbitHost, "/", h =>
+        var rabbitVHost = builder.Configuration["RabbitMQ:VirtualHost"] ?? "/";
+        var rabbitUsername = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+        var rabbitPassword = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+
+        cfg.Host(rabbitHost, rabbitVHost, h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(rabbitUsername);
+            h.Password(rabbitPassword);
         });
 
         // Resilient Bus Connection (Prevents 500 Startup Crash)
