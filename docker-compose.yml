@@ -66,7 +66,8 @@ services:
       - JwtSettings__Key=${JWT_SECRET_KEY}
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
       - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
-      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Host=${RABBITMQ_HOST:-rabbitmq}
+      - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
       - RabbitMQ__Username=${RABBITMQ_USER}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD}
     # UPDATED: Enforces that postgres-db must pass its health check first
@@ -92,8 +93,9 @@ services:
       - JwtSettings__Key=${JWT_SECRET_KEY}
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
       - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
-      - Redis__Host=redis
-      - RabbitMQ__Host=rabbitmq
+      - Redis__Host=${REDIS_HOST:-redis}
+      - RabbitMQ__Host=${RABBITMQ_HOST:-rabbitmq}
+      - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
       - RabbitMQ__Username=${RABBITMQ_USER}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD}
       - HttpClientBaseAdress=${WALLET_SVC_HTTP_CLIENT_BASE_ADDR:-localhost}
@@ -152,9 +154,6 @@ services:
     networks:
       - finance_network
     
-  # =======================================================================
-  # ASYNCHRONOUS NOTIFICATION WORKER SERVICE
-  # =======================================================================
   notification-service:
     build:
       context: .
@@ -162,7 +161,8 @@ services:
     container_name: fa_notification
     restart: unless-stopped
     environment:
-      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Host=${RABBITMQ_HOST:-rabbitmq}
+      - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
       - RabbitMQ__Username=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     depends_on:
