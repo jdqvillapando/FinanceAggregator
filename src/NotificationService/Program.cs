@@ -14,11 +14,15 @@ builder.Services.AddMassTransit(x =>
     x.UsingRabbitMq((context, cfg) =>
     {
         // Target our standard Docker internal host registry address fallback
-        var rabbitMqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
-        cfg.Host(rabbitMqHost, "/", h =>
+        var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        var rabbitVHost = builder.Configuration["RabbitMQ:VirtualHost"] ?? "/";
+        var rabbitUsername = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+        var rabbitPassword = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+        
+        cfg.Host(rabbitHost, rabbitVHost, h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(rabbitUsername);
+            h.Password(rabbitPassword);
         });
 
         // Resilient Bus Connection (Prevents 500 Startup Crash)
