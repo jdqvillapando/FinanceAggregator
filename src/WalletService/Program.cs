@@ -97,7 +97,7 @@ builder.Services
         "IdentityServiceClient",
         client =>
         {
-            var baseAddress = builder.Configuration["HttpClientBaseAddress"] ?? "localhost";
+            var baseAddress = builder.Configuration["WalletSvcSettings:HttpClientBaseAddress"] ?? "localhost";
             // Point this to your internal container gateway or endpoint
             client.BaseAddress = new Uri(baseAddress);
             client.Timeout = TimeSpan.FromSeconds(10);
@@ -161,7 +161,7 @@ builder.Services.AddMassTransit(x =>
         var rabbitUsername = builder.Configuration["RabbitMQ:Username"] ?? "guest";
         var rabbitPassword = builder.Configuration["RabbitMQ:Password"] ?? "guest";
 
-        cfg.Host(rabbitHost, rabbitVHost, h =>
+        cfg.Host(rabbitHost, rabbitVHost == "/" ? "/" : rabbitVHost, h =>
         {
             h.Username(rabbitUsername);
             h.Password(rabbitPassword);
