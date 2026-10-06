@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 using IdentityService.Models;
+
 
 namespace IdentityService.Data;
 
@@ -15,5 +17,9 @@ public class IdentityDbContext : IdentityDbContext<ApplicationUser>
 
         // FORCE all identity tables into our isolated schema
         builder.HasDefaultSchema("identity_schema");
+
+        builder.AddInboxStateEntity();
+        builder.AddOutboxMessageEntity();
+        builder.AddOutboxStateEntity();
     }
 }

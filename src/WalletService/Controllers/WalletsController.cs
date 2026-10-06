@@ -65,7 +65,8 @@ public class WalletsController : ControllerBase
         // We include Assets so you can see the related data in one call
         var userWallets = await _context.Wallets
             .Where(w => w.UserId == userId)
-            .Include(i => i.Assets)
+            .Include(i => i.Assets.OrderBy(o => o.Ticker))
+            .OrderBy(o => o.Name)
             .ToListAsync();
 
         try
