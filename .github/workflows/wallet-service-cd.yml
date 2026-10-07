@@ -32,7 +32,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_WALLET_NAME }}:${{ github.sha }}
-          docker build -t $IMAGE_NAME -f ./src/WalletService/Dockerfile ./src/WalletService
+          docker build -t $IMAGE_NAME -f src/WalletService/Dockerfile .
           docker push $IMAGE_NAME
 
       - name: Deploy to Azure Container Apps
