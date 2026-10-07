@@ -98,7 +98,7 @@ services:
       - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
       - RabbitMQ__Username=${RABBITMQ_USER}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD}
-      - HttpClientBaseAdress=${WALLET_SVC_HTTP_CLIENT_BASE_ADDR:-localhost}
+      - WalletSvcSettings__HttpClientBaseAdress=${WALLET_SVC_HTTP_CLIENT_BASE_ADDR:-localhost}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
@@ -165,6 +165,7 @@ services:
       - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
       - RabbitMQ__Username=${RABBITMQ_USER:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
+      - NotificationSvcSettings__Enabled=${NOTIF_SVC_ENABLED:-false}
     depends_on:
       rabbitmq:
         condition: service_started
@@ -178,6 +179,8 @@ services:
     build:
       context: ./src/FinanceAggregator.Web
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:5153}
     container_name: fa_frontend
     restart: unless-stopped
     ports:
@@ -185,7 +188,7 @@ services:
     depends_on:
       - yarp-gateway # Guarantees routing definitions and auth pipes are active before UI renders
     networks:
-      - finance_network    
+      - finance_network
 
 # =======================================================================
 # PERSISTENT DATA TIERS & LOGICAL ISOLATION BRIDGES
