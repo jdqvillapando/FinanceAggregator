@@ -13,9 +13,9 @@ using IdentityService.Services;
 using IdentityService.Settings;
 using IdentityService.Validators;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Setup SQLite
 builder.Services.AddDbContext<IdentityDbContext>(options =>
 {
     var connString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -76,6 +76,13 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 // Bind MassTransit
 builder.Services.AddMassTransit(x =>
 {
+    x.AddEntityFrameworkOutbox<IdentityDbContext>(efo =>
+    {
+        efo.QueryDelay = TimeSpan.FromSeconds(1);
+        efo.UsePostgres();
+        efo.UseBusOutbox();
+    });
+
     x.UsingRabbitMq((context, cfg) =>
     {
         // Dynamic Host Injection
@@ -85,7 +92,7 @@ builder.Services.AddMassTransit(x =>
         var rabbitUsername = builder.Configuration["RabbitMQ:Username"] ?? "guest";
         var rabbitPassword = builder.Configuration["RabbitMQ:Password"] ?? "guest";
 
-        cfg.Host(rabbitHost, rabbitVHost, h =>
+        cfg.Host(rabbitHost, rabbitVHost == "/" ? "/" : rabbitVHost, h =>
         {
             h.Username(rabbitUsername);
             h.Password(rabbitPassword);
