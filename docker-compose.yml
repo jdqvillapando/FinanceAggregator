@@ -179,6 +179,8 @@ services:
     build:
       context: ./src/FinanceAggregator.Web
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:5153}
     container_name: fa_frontend
     restart: unless-stopped
     ports:
@@ -186,7 +188,7 @@ services:
     depends_on:
       - yarp-gateway # Guarantees routing definitions and auth pipes are active before UI renders
     networks:
-      - finance_network    
+      - finance_network
 
 # =======================================================================
 # PERSISTENT DATA TIERS & LOGICAL ISOLATION BRIDGES

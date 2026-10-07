@@ -6,6 +6,7 @@ import path from 'path';
 // https://vite.dev/config/
 export default defineConfig({
   base: '/',
+  envDir: '../../',
   resolve: {
     // Ensure `@` path aliases resolve properly during CI/CD compilation
     alias: {

@@ -1,1 +1,1 @@
-export const GATEWAY_URL = 'http://localhost:5153';
+export const GATEWAY_URL = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL) : 'http://localhost:5153';
