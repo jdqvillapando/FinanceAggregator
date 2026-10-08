@@ -28,14 +28,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'src/FinanceAggregator.Web/package-lock.json'
 
-      - name: Install & Build Application
-        run: |
-          npm ci
-          npm run build
-        working-directory: src/FinanceAggregator.Web
-        env:
-          VITE_API_URL: ${{ secrets.AZURE_CAPP_GATEWAY_URL }}
-
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -43,5 +35,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src/FinanceAggregator.Web" # Source code directory containing package.json
-          output_location: "dist"                  # Directory compiled on-the-fly by npm run build
-          skip_app_build: true                     # Bypasses Oryx; publishes pre-compiled Vite binaries
+          output_location: "dist"                   # Directory compiled on-the-fly by npm run build
+          skip_app_build: false                     # Let Oryx handle the building and deployment
+        env:
+          VITE_API_URL: ${{ secrets.AZURE_CAPP_GATEWAY_URL }}
