@@ -6,6 +6,9 @@ import { fetchCurrentUser } from '../../features/auth/reducers/authSlice';
 import { useWalletHub } from '../../common/hooks/useWalletHub';
 
 import { Navbar } from '../../common/components';
+
+import agent from '../api/agent';
+
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
 import Dashboard from '../../features/wallets/Dashboard';
@@ -18,6 +21,11 @@ const App = () => {
   const { user } = useAppSelector(state => state.auth);
 
   const [isLoginView, setIsLoginView] = useState(true);
+
+  useEffect(() => {
+    const warmUp = agent.warmUpServices;
+    warmUp();
+  }, []);
 
   useWalletHub();
 
