@@ -82,6 +82,17 @@ app.UseRateLimiter();
 app.UseRouting();
 
 // =======================================================================
+// LIGHTWEIGHT PRE-WARM HEALTH ENDPOINT
+// =======================================================================
+// Placed before UseAuthentication & UseAuthorization so cold-start pings 
+// return instantly without needing a JWT token or triggering database checks.
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "Healthy",
+    timestamp = DateTime.UtcNow
+}));
+
+// =======================================================================
 // FIX: METADATA CORS EVALUATOR BRIDGE (NEW FOR WEBSOCKETS HANDSHAKE)
 // =======================================================================
 // This MUST go exactly here so the Endpoint Middleware can validate 
