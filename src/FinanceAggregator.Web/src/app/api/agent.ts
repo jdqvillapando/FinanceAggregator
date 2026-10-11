@@ -47,8 +47,8 @@ const responseBody = <T>(response: AxiosResponse<T>) => response.data;
 const warmUpServices = async () => {
     try {
         await fetch(`${GATEWAY_URL}/health`, { method: 'GET' }).catch(() => {});
-        await fetch(`${GATEWAY_URL}${API_VERSION_V1}/wallets/health`).catch(() => {});
-        await fetch(`${GATEWAY_URL}${API_VERSION_V1}/auth/health`).catch(() => {});
+        await fetch(`${GATEWAY_URL}${API_VERSION_V1}/wallets/health`, { method: 'GET' }).catch(() => {});
+        await fetch(`${GATEWAY_URL}${API_VERSION_V1}/auth/health`, { method: 'GET' }).catch(() => {});
     }
     // eslint-disable-next-line no-empty
     catch { } // Silently swallow errors during initial cold-startup
