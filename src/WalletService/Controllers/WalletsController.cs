@@ -33,6 +33,18 @@ public class WalletsController : ControllerBase
         _publishEndpoint = publishEndpoint;
     }
 
+    // GET: api/v1/wallets/health
+    // [AllowAnonymous] ensures pre-warm pings succeed without needing a JWT Bearer token.
+    [HttpGet("health")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Result<object>>> HealthCheck() => Ok(Result<object>.Success(
+        new
+        {
+            status = "Healthy",
+            timestamp = DateTime.UtcNow
+        }
+    ));
+
     // GET: api/v1/wallets
     [HttpGet]
     public async Task<ActionResult<Result<IEnumerable<Wallet>>>> GetWallets()

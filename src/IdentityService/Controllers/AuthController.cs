@@ -28,6 +28,17 @@ public class AuthController : ControllerBase
         _publishEndpoint = publishEndpoint;
     }
 
+    // [AllowAnonymous] ensures pre-warm pings succeed without needing a JWT Bearer token.
+    [HttpGet("health")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Result<object>>> HealthCheck() => Ok(Result<object>.Success(
+        new
+        {
+            status = "Healthy",
+            timestamp = DateTime.UtcNow
+        }
+    ));
+
     [HttpPost("register")]
     public async Task<ActionResult<string>> Register(RegisterDto registerDto)
     {
