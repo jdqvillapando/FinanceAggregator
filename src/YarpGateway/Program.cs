@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using YarpGateway.Common;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,11 +87,17 @@ app.UseRouting();
 // =======================================================================
 // Placed before UseAuthentication & UseAuthorization so cold-start pings 
 // return instantly without needing a JWT token or triggering database checks.
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "Healthy",
-    timestamp = DateTime.UtcNow
-}));
+app.MapGet("/health", async () => await Task.FromResult(
+    Results.Ok(
+        Result<object>.Success(
+            new
+            {
+                status = "Healthy",
+                timestamp = DateTime.UtcNow
+            }
+        )
+    )
+));
 
 // =======================================================================
 // FIX: METADATA CORS EVALUATOR BRIDGE (NEW FOR WEBSOCKETS HANDSHAKE)

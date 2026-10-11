@@ -125,11 +125,19 @@ services:
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityService}
       - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
       ####
+      - ReverseProxy__Routes__identityHealthCheck__ClusterId=identityCluster
+      - ReverseProxy__Routes__identityHealthCheck__AuthorizationPolicy=Anonymous
+      - ReverseProxy__Routes__identityHealthCheck__Match__Path=/api/v1/auth/health
+      ####
       - ReverseProxy__Routes__identityRoute__ClusterId=identityCluster
       - ReverseProxy__Routes__identityRoute__Match__Path=/api/v1/auth/{**remainder}
       - ReverseProxy__Routes__identityRoute__Transforms__0__PathPattern=api/v1/auth/{**remainder}
       - ReverseProxy__Routes__identityRoute__Transforms__1__RequestHeader=X-Gateway-Enforced
       - ReverseProxy__Routes__identityRoute__Transforms__1__Set=true
+      ####
+      - ReverseProxy__Routes__walletHealthCheck__ClusterId=walletCluster
+      - ReverseProxy__Routes__walletHealthCheck__AuthorizationPolicy=Anonymous
+      - ReverseProxy__Routes__walletHealthCheck__Match__Path=/api/v1/wallets/health
       ####
       - ReverseProxy__Routes__walletRoute__ClusterId=walletCluster
       - ReverseProxy__Routes__walletRoute__AuthorizationPolicy=Default
