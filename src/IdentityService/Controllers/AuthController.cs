@@ -2,12 +2,15 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MassTransit;
-using Contracts;
+using FinanceAggregator.Contracts;
 using IdentityService.Common;
+using IdentityService.Data;
 using IdentityService.Dtos;
 using IdentityService.Models;
 using IdentityService.Services;
+
 
 namespace IdentityService.Controllers;
 
@@ -18,13 +21,17 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
+    private readonly IdentityDbContext _context;
+    private readonly ILogger<AuthController> _logger;
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenService tokenService, IPublishEndpoint publishEndpoint)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenService tokenService, IdentityDbContext context, ILogger<AuthController> logger, IPublishEndpoint publishEndpoint)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
+        _context = context;
+        _logger = logger;
         _publishEndpoint = publishEndpoint;
     }
 
@@ -53,15 +60,31 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            // MassTransit does magic here
-            await _publishEndpoint.Publish<UserCreated>(new
+            try
             {
-                UserId = user.Id,
-                Email = user.Email!,
-                FullName = user.FullName!
-            });
+                await _publishEndpoint.Publish<UserCreated>(new
+                {
+                    UserId = user.Id,
+                    Email = user.Email!,
+                    FullName = user.FullName!
+                });
 
-            return Ok(Result<string>.Success("User registered successfully"));
+                await _context.SaveChangesAsync();
+
+                return Ok(Result<string>.Success("User registered successfully"));
+            }
+            catch (DbUpdateConcurrencyException exception)
+            {
+                _logger.LogError(exception, "Concurrency error: {Message}", exception.Message);
+            }
+            catch (DbUpdateException exception)
+            {
+                _logger.LogError(exception, "Database update error: {Message}", exception.Message);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Unexpected error occurred: {Message}", exception.Message);
+            }
         }
 
         // Join all Identity errors into a single string for the Result envelope

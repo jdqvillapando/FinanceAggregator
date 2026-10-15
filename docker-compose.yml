@@ -28,13 +28,19 @@ services:
     container_name: fa_rabbitmq
     restart: unless-stopped
     environment:
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VIRTUAL_HOST:-/}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - finance_network
 
@@ -68,12 +74,12 @@ services:
       - JwtSettings__Audience=${JWT_AUDIENCE:-FinanceAggregatorClients}
       - RabbitMQ__Host=${RABBITMQ_HOST:-rabbitmq}
       - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
-      - RabbitMQ__Username=${RABBITMQ_USER}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       postgres-db:
         condition: service_healthy
     networks:
@@ -96,13 +102,13 @@ services:
       - Redis__Host=${REDIS_HOST:-redis}
       - RabbitMQ__Host=${RABBITMQ_HOST:-rabbitmq}
       - RabbitMQ__VirtualHost=${RABBITMQ_VIRTUAL_HOST:-/}
-      - RabbitMQ__Username=${RABBITMQ_USER}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
       - WalletSvcSettings__HttpClientBaseAdress=${WALLET_SVC_HTTP_CLIENT_BASE_ADDR:-localhost}
     # UPDATED: Enforces that postgres-db must pass its health check first
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_started
       postgres-db:
@@ -176,7 +182,7 @@ services:
       - NotificationSvcSettings__Enabled=${NOTIF_SVC_ENABLED:-false}
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     networks:
       - finance_network
 

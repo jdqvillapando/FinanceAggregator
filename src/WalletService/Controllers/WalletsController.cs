@@ -202,15 +202,16 @@ public class WalletsController : ControllerBase
 
         // Remove and save
         _context.Assets.Remove(asset);
-        await _context.SaveChangesAsync();
 
         await _publishEndpoint.Publish<AssetDeleted>(new
         {
-            WalletId = walletId,
-            Ticker = ticker.ToUpper().Trim(),
+            asset.WalletId,
+            asset.Ticker,
             UserId = userId,
             DeletedAt = DateTime.UtcNow
         });
+
+        await _context.SaveChangesAsync();
 
         try
         {
