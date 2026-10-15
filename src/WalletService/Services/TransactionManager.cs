@@ -75,9 +75,6 @@ public class TransactionManager : ITransactionManager
 
         _context.Transactions.Add(transaction);
 
-        // Commit mutations atomically within a single transactional unit
-        await _context.SaveChangesAsync();
-
         // Safely publish our contract to the message bus after database success.
         // We transform our internal domain enum into a string to preserve backward compatibility.
         await _publishEndpoint.Publish(new TransactionExecuted
@@ -93,6 +90,9 @@ public class TransactionManager : ITransactionManager
             Timestamp = transaction.Timestamp,
             UserId = userId
         });
+
+        // Commit mutations atomically within a single transactional unit
+        await _context.SaveChangesAsync();
 
         // Build the mapped tracking response object
         var response = new TransactionResponseDto
