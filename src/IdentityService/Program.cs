@@ -102,7 +102,10 @@ builder.Services.AddMassTransit(x =>
         cfg.UseMessageRetry(r => r.Exponential(5, 
             TimeSpan.FromSeconds(2), 
             TimeSpan.FromSeconds(30), 
-            TimeSpan.FromSeconds(5)));
+            TimeSpan.FromSeconds(5)
+        ));
+
+        cfg.ConfigureEndpoints(context);
     });
 });
 
