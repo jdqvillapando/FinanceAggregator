@@ -138,8 +138,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateWalletDtoValidator>()
 builder.Services.AddMassTransit(x =>
 {
     // Add the consumer(s)
-    x.AddConsumer<UserCreatedConsumer>();
-    x.AddConsumer<TransactionExecutedConsumer>();
+    x.AddConsumers(typeof(Program).Assembly);
+    // x.AddConsumer<UserCreatedConsumer>();
+    // x.AddConsumer<TransactionExecutedConsumer>();
 
     // Configure EF Core Outbox
     x.AddEntityFrameworkOutbox<WalletDbContext>(efo =>
@@ -171,19 +172,10 @@ builder.Services.AddMassTransit(x =>
         cfg.UseMessageRetry(r => r.Exponential(5, 
             TimeSpan.FromSeconds(2), 
             TimeSpan.FromSeconds(30), 
-            TimeSpan.FromSeconds(5)));
-
-        // Configure the "Inbox" (Queue) for this service
-        cfg.ReceiveEndpoint("user-created-queue", e =>
-        {
-            // Connect the consumer to this queue
-            e.ConfigureConsumer<UserCreatedConsumer>(context);
-        });
-
-        cfg.ReceiveEndpoint("transaction-executed-queue", e =>
-        {
-            e.ConfigureConsumer<TransactionExecutedConsumer>(context);
-        });
+            TimeSpan.FromSeconds(5)
+        ));
+        
+        cfg.ConfigureEndpoints(context);
     });
 });
 
