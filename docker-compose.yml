@@ -195,6 +195,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:5153}
+        - VITE_MAINTENANCE_MODE_ENABLED=${VITE_MAINTENANCE_MODE_ENABLED:-false}
     container_name: fa_frontend
     restart: unless-stopped
     ports:
