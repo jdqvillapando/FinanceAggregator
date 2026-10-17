@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router';
 
 import { useAppSelector, useAppDispatch } from '../store/configureStore';
 import { fetchCurrentUser, signOut } from '../../features/auth/reducers/authSlice';
@@ -11,7 +12,6 @@ import agent from '../api/agent';
 
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
-import Dashboard from '../../features/wallets/Dashboard';
 
 import { MaintenanceModeMain } from './Maintenance';
 import './App.css'
@@ -20,6 +20,7 @@ import './App.css'
 const App = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
+  const location = useLocation();
 
   const [isLoginView, setIsLoginView] = useState(true);
 
@@ -43,6 +44,8 @@ const App = () => {
     }
   }, [dispatch]);
 
+  const isPublicRoute = location.pathname === '/about';
+
   return (
     <>
       <div className="min-h-screen bg-slate-50">
@@ -52,8 +55,8 @@ const App = () => {
             MAINTENANCE_MODE_ENABLED ?
             <MaintenanceModeMain /> :
             (
-              user ? 
-              <Dashboard /> :
+              (user || isPublicRoute) ?
+              <Outlet /> :
               <>
                 <div className="max-w-md mx-auto px-6">
                   { isLoginView ? <Login /> : <Register onRegisterSuccess={() => setIsLoginView(true)} /> }

@@ -1,3 +1,5 @@
+import { Link } from 'react-router';
+
 import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
 
 import { signOut } from '../../features/auth/reducers/authSlice';
@@ -20,6 +22,17 @@ const Navbar = () => {
                 </div>
 
                 <div className="flex items-center gap-6">
+                    <div>
+                        {
+                            user &&
+                            <Link to="/" className="text-sm font-semibold text-slate-600 hover:text-indigo-600">
+                                Dashboard
+                            </Link> 
+                        }
+                        <Link to="/about" className="text-sm font-semibold text-slate-600 hover:text-indigo-600">
+                            About
+                        </Link>
+                    </div>
                     <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">v1.0 Microservices</span>
                     {
                         MAINTENANCE_MODE_ENABLED ?

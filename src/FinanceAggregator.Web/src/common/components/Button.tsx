@@ -29,7 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
     // Default color palette map (allows easy overrides via variant or custom className)
     const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
         primary: 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700',
-        secondary: 'bg-slate-50 text-slate-500 hover:bg-slate-100',
+        secondary: 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-indigo-600',
         success: 'bg-emerald-600 text-white shadow-emerald-100 hover:bg-emerald-700',
         danger: 'bg-rose-600 text-white shadow-rose-100 hover:bg-rose-700',
         ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',

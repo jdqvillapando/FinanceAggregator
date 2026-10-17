@@ -1,0 +1,92 @@
+{
+    "title": "About FinanceAggregator",
+    "subtitle": "Distributed Cloud Wealth Management Architecture",
+    "introduction": {
+        "sectionTitle": "System Overview",
+        "description": "FinanceAggregator is a fully containerized, event-driven distributed system hosted in the Azure cloud ecosystem. Backend microservices run as isolated Azure Container Apps that scale dynamically (0&ndash;1) for maximum cost-efficiency. State persistence is managed via managed PostgreSQL on Supabase, messaging is routed through CloudAMQP, and the frontend is served globally via Azure Static Web Apps."
+    },
+    "workflow": {
+        "sectionTitle": "Deployed Cloud Workflow",
+        "items": [
+            {
+                "name": "Public CDN & Gateway Entry",
+                "description": "The client SPA dispatches API requests to the public <strong className='text-slate-600 font-medium'>YARP Gateway</strong> container app."
+            },
+            {
+                "name": "Authentication & Registration",
+                "description": "YARP routes traffic to the <strong className='text-slate-600 font-medium'>Identity Service</strong>, publishing user lifecycle events to <strong className='text-slate-600 font-medium'>CloudAMQP</strong>."
+            },
+            {
+                "name": "Out-of-Band Event Processing",
+                "description": "The <strong className='text-slate-600 font-medium'>Wallet Service</strong> consumes message events to provision default user wallets directly inside Supabase."
+            },
+            {
+                "name": "Caching & Real-Time Sync",
+                "description": "Application's state is cached using containerized <strong className='text-slate-600 font-medium'>Redis</strong>, while <strong className='text-slate-600 font-medium'>SignalR</strong> pushes live WebSocket updates back to the browser."
+            }
+        ]
+    },
+    "microservices": {
+        "sectionTitle": "Cloud Microservices Mesh",
+        "items": [
+            {
+                "name": "Azure Static Web Apps",
+                "description": "Hosts the compiled SPA static assets and routes client traffic securely over HTTPS/WSS."
+            },
+            {
+                "name": "YARP Gateway",
+                "description": "Public-facing entry point providing CORS termination, JWT validation, and reverse proxying."
+            },
+            {
+                "name": "Identity Service",
+                "description": "Internal app handling user authentication and JWT token issuance within an isolated identity schema."
+            },
+            {
+                "name": "Wallet Service",
+                "description": "Internal app managing financial balances and asset allocations, integrated with Redis and SignalR."
+            },
+            {
+                "name": "Notification Service",
+                "description": "Decoupled background worker processing real-time audit logs and system events via CloudAMQP."
+            }
+        ]
+    },
+    "techStack": {
+        "sectionTitle": "Cloud Infrastructure & Tech Stack",
+        "tableHeaders": ["Layer/Service", "Provider/Technology"],
+        "items": [
+            {
+                "category": "Frontend",
+                "detail": "React/TypeScript SPA, hosted in Azure Static Web Apps (Serverless Edge CDN)"
+            },
+            {
+                "category": "API Gateway",
+                "detail": "YARP on Azure Container Apps (External Ingress)"
+            },
+            {
+                "category": "Backend Services",
+                "detail": "C#/.NET Web APIs on Azure Container Apps"
+            },
+            {
+                "category": "Database",
+                "detail": "Supabase Managed PostgreSQL (Schema-Isolated)"
+            },
+            {
+                "category": "Event Message Broker",
+                "detail": "CloudAMQP (Managed RabbitMQ + MassTransit)"
+            },
+            {
+                "category": "Distributed Cache",
+                "detail": "Containerized Redis (Azure Container Apps, Internal TCP)"
+            },
+            {
+                "category": "Real-Time Sync",
+                "detail": "ASP.NET Core SignalR WebSockets"
+            },
+            {
+                "category": "CI/CD & Container Repository",
+                "detail": "GitHub Actions, Docker Hub"
+            }
+        ]
+    }
+}
