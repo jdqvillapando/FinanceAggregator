@@ -5,7 +5,7 @@ import { useAppSelector, useAppDispatch } from '../store/configureStore';
 import { fetchCurrentUser, signOut } from '../../features/auth/reducers/authSlice';
 
 import { useWalletHub } from '../../common/hooks/useWalletHub';
-import { Navbar } from '../../common/components';
+import { Button, Navbar } from '../../common/components';
 import { MAINTENANCE_MODE_ENABLED } from '../../common/utils/constants';
 
 import agent from '../api/agent';
@@ -52,24 +52,29 @@ const App = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50">
+      <div className = 'min-h-screen bg-slate-50'>
         <Navbar />
-        <main className="container mx-auto px-4">
+        { MAINTENANCE_MODE_ENABLED && <MaintenanceModeMain /> }
+        <main className = 'container mx-auto px-4'>
           {
             (MAINTENANCE_MODE_ENABLED && !isPublicRoute) ?
-            <MaintenanceModeMain /> :
+            <></> :
             (
               (user || isPublicRoute) ?
               <Outlet /> :
               <>
-                <div className="max-w-md mx-auto px-6">
-                  { isLoginView ? <Login /> : <Register onRegisterSuccess={() => setIsLoginView(true)} /> }
-                  <button
-                    className="w-full mt-6 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
-                    onClick={() => setIsLoginView(!isLoginView)}
-                  >
-                    { isLoginView ? "Register" : "Back to Login" }
-                  </button>
+                <div className = 'max-w-md mx-auto px-6'>
+                  { isLoginView ? <Login /> : <Register onRegisterSuccess={ () => setIsLoginView(true) } /> }
+                  <div className = 'w-full flex justify-center items-center gap-1.5 whitespace-nowrap mt-3'>
+                    { isLoginView && <span className = 'text-sm text-slate-500'>No account yet?</span> }
+                    <Button
+                      className = 'text-sm text-slate-500 hover:text-indigo-600 transition-colors'
+                      onClick={ () => setIsLoginView(!isLoginView) }
+                      overrideBaseStyling
+                    >
+                      { isLoginView ? 'Register here' : 'Back to Login' }
+                    </Button>
+                  </div>
                 </div>
               </>
             )
