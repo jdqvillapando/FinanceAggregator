@@ -15,7 +15,7 @@ export const router = createBrowserRouter([
             // { path: 'profile/edit', element: <EditProfile /> },
 
             /* Catch-all fallback: Redirects any unmapped route (e.g., /profile) to '/' */
-            { path: '*', element: <Navigate replace to="/" /> },
+            { path: '*', element: <Navigate replace to = '/' /> },
         ]
     }
 ]);
