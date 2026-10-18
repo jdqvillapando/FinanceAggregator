@@ -103,7 +103,7 @@ app.MapGet("/health", async () => await Task.FromResult(
 app.Use(async (context, next) =>
 {
     // Bypasses health checks for container warming, but blocks all API routes
-    if (maintenanceModeEnabled && !context.Request.Path.StartsWithSegments("/health"))
+    if (maintenanceModeEnabled)
     {
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.ContentType = "application/json";

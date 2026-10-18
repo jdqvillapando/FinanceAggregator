@@ -24,7 +24,11 @@ const App = () => {
 
   const [isLoginView, setIsLoginView] = useState(true);
 
-  useEffect(() => { agent.warmUpServices(); }, []);
+  useEffect(() => {
+    if (!MAINTENANCE_MODE_ENABLED) {
+      agent.warmUpServices();
+    }
+  }, []);
 
   useWalletHub();
 
@@ -52,7 +56,7 @@ const App = () => {
         <Navbar />
         <main className="container mx-auto px-4">
           {
-            MAINTENANCE_MODE_ENABLED ?
+            (MAINTENANCE_MODE_ENABLED && !isPublicRoute) ?
             <MaintenanceModeMain /> :
             (
               (user || isPublicRoute) ?
