@@ -10,7 +10,7 @@ export default defineConfig({
   resolve: {
     // Ensure `@` path aliases resolve properly during CI/CD compilation
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   build: {

@@ -1,6 +1,5 @@
 import type { DropdownOption } from '../components/Dropdown';
-import cryptoData from '../lib/cryptocurrency.json';
-import localeData from '../lib/locale.json';
+import { cryptoData, localeData } from '../lib';
 
 
 /**

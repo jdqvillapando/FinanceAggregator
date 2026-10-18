@@ -39,3 +39,4 @@ jobs:
           skip_app_build: false                     # Let Oryx handle the building and deployment
         env:
           VITE_API_URL: ${{ secrets.AZURE_CAPP_GATEWAY_URL }}
+          VITE_MAINTENANCE_MODE_ENABLED: ${{ secrets.MAINTENANCE_MODE_ENABLED }}
