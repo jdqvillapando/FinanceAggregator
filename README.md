@@ -59,18 +59,29 @@ Before executing the boot sequence, verify that your host system has the followi
 
 ---
 
-## Orchestration Boot and Runtime Instructions
+## Orchestration Boot and Runtime Instructions (Local Execution)
 
 The entire platform is fully containerized. There is zero requirement to manually download or set up local instances of PostgreSQL, RabbitMQ, or Redis on your host operating system.
 
 ### 1. Fresh Cluster Boot Configuration
+After obtaining a copy of this repository, go to `FinanceAggregator/src/FinanceAggregator.Web` and run this command:
+```bash
+npm install
+```
+Make sure to go back to the root directory after this command.
+
 To execute an atomic, pristine spin-up of all infrastructure layers, backing datastores, background message queues, and core microservice runtimes from scratch, run the following command within the root repo path:
 
 ```bash
+# Caution: This removes your existing containerized data storages
 docker compose down --volumes --remove-orphans
 docker compose up --build -d
 ```
-_Note: The `--volumes` flag ensures that any stale historical datastores or caching states are completely flushed, forcing the PostgreSQL cluster engine to cleanly generate its isolated microservice schemas natively on initial boot._
+_Warning: The `--volumes` flag ensures that any stale historical datastores or caching states are completely flushed, forcing the PostgreSQL cluster engine to cleanly generate its isolated microservice schemas natively on initial boot. Use the following command instead to prevent data loss:_
+
+```bash
+docker compose down
+```
 
 ### 2. Standard Infrastructure Lifecycle Management
 To stop the workspace container cluster gracefully without destroying your active data tables, user accounts, cache keys, or event ledger history:
@@ -96,7 +107,7 @@ Once the runtime containers show a healthy or running status inside your contain
 ## Monorepo Workspace Directory Blueprint
     FinanceAggregator/
     ├── .github/
-    │   └── workflows/              # Path-isolated continuous integration automation pipelines
+    │   └── workflows/              # Path-isolated CI/CD and other automation pipelines
     ├── src/
     │   ├── YarpGateway/            # Gateway Proxy layer enforcing CORS, routing, & proxy policies
     │   ├── IdentityService/        # Secured Authentication context managing user namespaces
@@ -105,4 +116,5 @@ Once the runtime containers show a healthy or running status inside your contain
     │   └── FinanceAggregator.Web/  # High-performance React, TypeScript & Redux view engine
     ├── docker-compose.yml          # Master infrastructure, database, and event orchestration script
     ├── FinanceAggregator.sln       # Monorepo cross-service solution compilation manifest
+    ├── LICENSE
     └── README.md
