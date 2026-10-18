@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import parse from 'html-react-parser';
 import { ChevronLeft } from 'lucide-react'; 
 
+import licenseText from '../../../../../LICENSE?raw';
+
 import { useAppSelector } from '../../app/store/configureStore';
 
 import { Button } from '../../common/components/Button';
@@ -110,6 +112,17 @@ const About: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <hr className = 'border-slate-100' />
+
+            <div className = 'flex flex-col gap-3'>
+                <h2 className = 'text-base font-semibold text-slate-700 uppercase tracking-wide text-xs'>
+                    Repository & Usage License
+                </h2>
+                <pre className = 'bg-slate-300 text-xs leading-relaxed text-slate-500 p-2'>
+                    { licenseText }
+                </pre>
             </div>
         </div>
     </div>;
