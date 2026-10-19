@@ -2,11 +2,27 @@ name: Frontend CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ 'main' ]
     paths:
       - 'src/FinanceAggregator.Web/**'
       - '.github/workflows/frontend-cd.yml'
   workflow_dispatch:
+    inputs:
+      maintenance_mode:
+        description: 'Override VITE_MAINTENANCE_MODE_ENABLED'
+        required: false
+        type: choice
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
+  workflow_call:
+    inputs:
+      maintenance_mode:
+        description: 'Set VITE_MAINTENANCE_MODE_ENABLED'
+        required: false
+        type: string
+        default: 'false'
 
 jobs:
   deploy-frontend:
@@ -33,10 +49,10 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_DEPLOYMENT_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "src/FinanceAggregator.Web" # Source code directory containing package.json
-          output_location: "dist"                   # Directory compiled on-the-fly by npm run build
+          action: 'upload'
+          app_location: 'src/FinanceAggregator.Web' # Source code directory containing package.json
+          output_location: 'dist'                   # Directory compiled on-the-fly by npm run build
           skip_app_build: false                     # Let Oryx handle the building and deployment
         env:
           VITE_API_URL: ${{ secrets.AZURE_CAPP_GATEWAY_URL }}
-          VITE_MAINTENANCE_MODE_ENABLED: ${{ secrets.MAINTENANCE_MODE_ENABLED }}
+          VITE_MAINTENANCE_MODE_ENABLED: ${{ inputs.maintenance_mode || secrets.MAINTENANCE_MODE_ENABLED }}
