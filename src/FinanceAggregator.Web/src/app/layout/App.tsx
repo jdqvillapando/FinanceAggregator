@@ -13,8 +13,7 @@ import agent from '../api/agent';
 import Login from '../../features/auth/Login';
 import Register from '../../features/auth/Register';
 
-import { MaintenanceModeMain } from './Maintenance';
-import './App.css'
+import  Maintenance  from './Maintenance';
 
 
 const App = () => {
@@ -54,11 +53,13 @@ const App = () => {
     <>
       <div className = 'min-h-screen bg-slate-50'>
         <Navbar />
-        { MAINTENANCE_MODE_ENABLED && <MaintenanceModeMain /> }
+        { MAINTENANCE_MODE_ENABLED && <Maintenance.Banner /> }
         <main className = 'container mx-auto px-4'>
           {
             (MAINTENANCE_MODE_ENABLED && !isPublicRoute) ?
-            <></> :
+            <div className = 'max-w-md mx-auto px-6'>
+              <Maintenance.Notice />
+            </div> :
             (
               (user || isPublicRoute) ?
               <Outlet /> :
