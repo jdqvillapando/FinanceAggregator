@@ -1,0 +1,79 @@
+name: Scheduled Environment & Maintenance (Hard Start/Stop) Toggle
+
+on:
+  schedule:
+    # 1:00 PM PST (UTC+8) (05:00 UTC) Monday-Friday: Start containers + Disable Maintenance
+    - cron: '0 5 * * 1-5'
+    # 3:00 PM PST (UTC+8) (07:00 UTC) Monday-Friday: Stop containers + Enable Maintenance
+    - cron: '0 7 * * 1-5'
+
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Choose mode to run manually'
+        required: true
+        type: choice
+        default: 'enable_active_mode'
+        options:
+            - 'enable_active_mode'
+            - 'enable_maintenance_mode'
+
+jobs:
+  # ----------------------------------------------------------------------
+  # JOB 1: START ALL CONTAINERS & DISABLE MAINTENANCE MODE (1:00 PM UTC+8)
+  # ----------------------------------------------------------------------
+  hard-start-containers:
+    if: github.event.schedule == '0 5 * * 1-5' || inputs.action == 'enable_active_mode'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Start All Container Apps
+        run: |
+          APPS=$(az containerapp list --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?name!='${{ secrets.AZURE_CAPP_NOTIFICATION_NAME }}'].name" -o tsv)
+          for APP in $APPS; do
+            echo "Starting $APP..."
+            az containerapp start \
+              --name "$APP" \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+          done
+
+  deploy-frontend-active:
+    needs: hard-start-containers
+    # Call reusable workflow directly at job level
+    uses: ./.github/workflows/frontend-cd.yml
+    with:
+      maintenance_mode: 'false'
+    secrets: inherit
+
+  # --------------------------------------------------------------------
+  # JOB 2: STOP ALL CONTAINERS & ENABLE MAINTENANCE MODE (3:00 PM UTC+8)
+  # --------------------------------------------------------------------
+  hard-stop-containers:
+    if: github.event.schedule == '0 7 * * 1-5' || inputs.action == 'enable_maintenance_mode'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Stop All Container Apps
+        run: |
+          APPS=$(az containerapp list --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?name!='${{ secrets.AZURE_CAPP_NOTIFICATION_NAME }}'].name" -o tsv)
+          for APP in $APPS; do
+            echo "Stopping $APP..."
+            az containerapp stop \
+              --name "$APP" \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+          done
+
+  deploy-frontend-maintenance:
+    needs: hard-stop-containers
+    uses: ./.github/workflows/frontend-cd.yml
+    with:
+      maintenance_mode: 'true'
+    secrets: inherit
