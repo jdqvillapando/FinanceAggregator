@@ -6,7 +6,6 @@ on:
     - cron: '0 5 * * 1-5'
     # 3:00 PM PST (UTC+8) (07:00 UTC) Monday-Friday: Stop containers + Enable Maintenance
     - cron: '0 7 * * 1-5'
-
   workflow_dispatch:
     inputs:
       action:
@@ -45,6 +44,10 @@ jobs:
     needs: hard-start-containers
     # Call reusable workflow directly at job level
     uses: ./.github/workflows/frontend-cd.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
     with:
       maintenance_mode: 'false'
     secrets: inherit
@@ -74,6 +77,10 @@ jobs:
   deploy-frontend-maintenance:
     needs: hard-stop-containers
     uses: ./.github/workflows/frontend-cd.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
     with:
       maintenance_mode: 'true'
     secrets: inherit
