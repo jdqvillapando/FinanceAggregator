@@ -83,6 +83,21 @@ app.UseRateLimiter();
 // Identifies which YARP route matches the request
 app.UseRouting();
 
+app.Use(async (context, next) =>
+{
+    // Blocks all API routes when in maintenance mode
+    if (maintenanceModeEnabled)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        context.Response.ContentType = "application/json";
+        
+        await context.Response.WriteAsJsonAsync(Result<string>.Failure($"[{DateTime.UtcNow}] System is in maintenance mode. Active sessions have been suspended (HTTP Status {StatusCodes.Status503ServiceUnavailable})."));
+        return;
+    }
+
+    await next();
+});
+
 // =======================================================================
 // LIGHTWEIGHT PRE-WARM HEALTH ENDPOINT
 // =======================================================================
@@ -99,21 +114,6 @@ app.MapGet("/health", async () => await Task.FromResult(
         )
     )
 ));
-
-app.Use(async (context, next) =>
-{
-    // Bypasses health checks for container warming, but blocks all API routes
-    if (maintenanceModeEnabled)
-    {
-        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        context.Response.ContentType = "application/json";
-        
-        await context.Response.WriteAsJsonAsync(Result<string>.Failure($"[{DateTime.UtcNow}] System is in maintenance mode. Active sessions have been suspended (HTTP Status {StatusCodes.Status503ServiceUnavailable})."));
-        return;
-    }
-
-    await next();
-});
 
 // =======================================================================
 // FIX: METADATA CORS EVALUATOR BRIDGE (NEW FOR WEBSOCKETS HANDSHAKE)

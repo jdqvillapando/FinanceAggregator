@@ -19,9 +19,9 @@ on:
 
 jobs:
   # ----------------------------------------------------------------------
-  # JOB 1: START ALL CONTAINERS & DISABLE MAINTENANCE MODE (1:00 PM UTC+8)
+  # JOB 1: SCALE UP CONTAINERS & DISABLE MAINTENANCE MODE (1:00 PM UTC+8)
   # ----------------------------------------------------------------------
-  hard-start-containers:
+  scale-up-containers:
     if: github.event.schedule == '0 5 * * 1-5' || inputs.action == 'enable_active_mode'
     runs-on: ubuntu-latest
     steps:
@@ -30,21 +30,34 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Start All Container Apps
+      - name: Open the Yarp Gateway
+        run: |
+          echo "Enabling API Gateway..."
+          az containerapp update \
+            --name ${{ secrets.AZURE_CAPP_GATEWAY_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --set-env-vars "GatewaySettings__MaintenanceModeEnabled=false" \
+            --min-replicas 1 \
+            --max-replicas 1
+
+      - name: Scale UP Backend Microservices
         run: |
           APPS=(
-            "${{ secrets.AZURE_CAPP_GATEWAY_NAME }}" 
             "${{ secrets.AZURE_CAPP_IDENTITY_NAME }}" 
             "${{ secrets.AZURE_CAPP_WALLET_NAME }}" 
             "redis"
           )
           for APP in "${APPS[@]}"; do
-            echo "Starting $APP..."
-            az containerapp start --name "$APP" --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            echo "Scaling UP $APP to 1 replica..."
+            az containerapp update \
+              --name "$APP" \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --min-replicas 1 \
+              --max-replicas 1
           done
 
   deploy-frontend-active:
-    needs: hard-start-containers
+    needs: scale-up-containers
     # Call reusable workflow directly at job level
     uses: ./.github/workflows/frontend-cd.yml
     permissions:
@@ -56,9 +69,9 @@ jobs:
     secrets: inherit
 
   # --------------------------------------------------------------------
-  # JOB 2: STOP ALL CONTAINERS & ENABLE MAINTENANCE MODE (3:00 PM UTC+8)
+  # JOB 2: SCALE DOWN CONTAINERS & ENABLE MAINTENANCE MODE (3:00 PM UTC+8)
   # --------------------------------------------------------------------
-  hard-stop-containers:
+  scale-down-containers:
     if: github.event.schedule == '0 7 * * 1-5' || inputs.action == 'enable_maintenance_mode'
     runs-on: ubuntu-latest
     steps:
@@ -67,21 +80,34 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Stop All Container Apps
+      - name: Close the Yarp Gateway
+        run: |
+          echo "Disabling API Gateway..."
+          az containerapp update \
+            --name ${{ secrets.AZURE_CAPP_GATEWAY_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --set-env-vars "GatewaySettings__MaintenanceModeEnabled=true" \
+            --min-replicas 0 \
+            --max-replicas 0
+
+      - name: Scale DOWN Backend Microservices
         run: |
           APPS=(
-            "${{ secrets.AZURE_CAPP_GATEWAY_NAME }}" 
             "${{ secrets.AZURE_CAPP_IDENTITY_NAME }}" 
             "${{ secrets.AZURE_CAPP_WALLET_NAME }}" 
             "redis"
           )
           for APP in "${APPS[@]}"; do
-            echo "Stopping $APP..."
-            az containerapp stop --name "$APP" --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            echo "Scaling DOWN $APP to 0 replica..."
+            az containerapp update \
+              --name "$APP" \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --min-replicas 0 \
+              --max-replicas 0
           done
 
   deploy-frontend-maintenance:
-    needs: hard-stop-containers
+    needs: scale-down-containers
     uses: ./.github/workflows/frontend-cd.yml
     permissions:
       contents: read
