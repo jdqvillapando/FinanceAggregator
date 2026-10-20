@@ -32,12 +32,15 @@ jobs:
 
       - name: Start All Container Apps
         run: |
-          APPS=$(az containerapp list --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?name!='${{ secrets.AZURE_CAPP_NOTIFICATION_NAME }}'].name" -o tsv)
-          for APP in $APPS; do
+          APPS=(
+            "${{ secrets.AZURE_CAPP_GATEWAY_NAME }}" 
+            "${{ secrets.AZURE_CAPP_IDENTITY_NAME }}" 
+            "${{ secrets.AZURE_CAPP_WALLET_NAME }}" 
+            "redis"
+          )
+          for APP in "${APPS[@]}"; do
             echo "Starting $APP..."
-            az containerapp start \
-              --name "$APP" \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            az containerapp start --name "$APP" --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
           done
 
   deploy-frontend-active:
@@ -66,12 +69,15 @@ jobs:
 
       - name: Stop All Container Apps
         run: |
-          APPS=$(az containerapp list --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?name!='${{ secrets.AZURE_CAPP_NOTIFICATION_NAME }}'].name" -o tsv)
-          for APP in $APPS; do
+          APPS=(
+            "${{ secrets.AZURE_CAPP_GATEWAY_NAME }}" 
+            "${{ secrets.AZURE_CAPP_IDENTITY_NAME }}" 
+            "${{ secrets.AZURE_CAPP_WALLET_NAME }}" 
+            "redis"
+          )
+          for APP in "${APPS[@]}"; do
             echo "Stopping $APP..."
-            az containerapp stop \
-              --name "$APP" \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+            az containerapp stop --name "$APP" --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
           done
 
   deploy-frontend-maintenance:
