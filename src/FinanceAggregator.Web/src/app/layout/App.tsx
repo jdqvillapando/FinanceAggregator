@@ -57,7 +57,7 @@ const App = () => {
         <main className = 'container mx-auto px-4'>
           {
             (MAINTENANCE_MODE_ENABLED && !isPublicRoute) ?
-            <div className = 'max-w-md mx-auto px-6'>
+            <div className = 'w-full flex justify-center'>
               <Maintenance.Notice />
             </div> :
             (
