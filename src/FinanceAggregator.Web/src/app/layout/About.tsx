@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router';
 import parse from 'html-react-parser';
 import { ChevronLeft } from 'lucide-react'; 
 
-import licenseText from '../../../../../LICENSE?raw';
+// Compromise: Since Docker is flagging the far-reached LICENSE,
+// I created a copy of it inside the frontend's root directory.
+import licenseText from '../../../LICENSE?raw';
 
 import { useAppSelector } from '../../app/store/configureStore';
 
@@ -120,7 +122,7 @@ const About: React.FC = () => {
                 <h2 className = 'text-base font-semibold text-slate-700 uppercase tracking-wide text-xs'>
                     Repository & Usage License
                 </h2>
-                <pre className = 'bg-slate-300 text-xs leading-relaxed text-slate-500 p-2'>
+                <pre className = 'overflow-x-auto whitespace-pre-wrap break-words bg-slate-300 text-xs leading-relaxed text-slate-500 p-2'>
                     { licenseText }
                 </pre>
             </div>

@@ -20,6 +20,7 @@ on:
 jobs:
   # ----------------------------------------------------------------------
   # JOB 1: SCALE UP CONTAINERS & DISABLE MAINTENANCE MODE (1:00 PM UTC +8)
+  # (originally scaling up to 1 but reverted to 0 for now)
   # ----------------------------------------------------------------------
   scale-up-containers:
     if: github.event.schedule == '0 1 * * 1-5' || inputs.action == 'enable_active_mode'
@@ -37,7 +38,7 @@ jobs:
             --name ${{ secrets.AZURE_CAPP_GATEWAY_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --set-env-vars "GatewaySettings__MaintenanceModeEnabled=false" \
-            --min-replicas 1 \
+            --min-replicas 0 \
             --max-replicas 1
 
       - name: Scale UP Backend Microservices
@@ -52,7 +53,7 @@ jobs:
             az containerapp update \
               --name "$APP" \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --min-replicas 1 \
+              --min-replicas 0 \
               --max-replicas 1
           done
 
