@@ -21,7 +21,7 @@ const Notice = () => (
 
             {/* Content Body */}
             <p className = 'text-sm leading-relaxed text-slate-500'>
-                In a noble effort <span className = 'italic'>to conserve data center water<span className = 'font-bold text-rose-600'>*</span></span>, a daily scheduled maintenance window is running every weekday:
+                In a noble effort <span className = 'italic'>to conserve data center water<span className = 'font-bold text-rose-600'>*</span></span>, a daily scheduled maintenance window<span className = 'font-bold text-rose-600'>**</span> is running every weekday:
             </p>
             
             <ul className = 'list-disc list-inside text-sm text-slate-500 flex flex-col gap-2.5 leading-relaxed'>
@@ -42,6 +42,9 @@ const Notice = () => (
             {/* Footnote / Disclaimer */}
             <span className = 'text-[0.6rem] text-slate-500 leading-normal block'>
                 <span className = 'font-bold text-rose-600'>*</span> Just kidding about the water saving thing <span className = 'italic'>*cries in data center cooling requirements*</span>... I&apos;m just being stingy on cloud bills because I&apos;m unemployed. Serious about the hiring part though, please hire me :)
+            </span>
+            <span className = 'text-[0.6rem] text-slate-500 leading-normal block'>
+                <span className = 'font-bold text-rose-600'>**</span> As you may know, the schedules don&apos;t trigger on time. Based on my research and discussions with my colleagues (a.k.a. Cl**d* &amp; G*m*n*), GitHub Actions&apos; scheduled workflows run on shared, best-effort infrastructure which often causes delays during peak load times. I'll try to solve this issue in the future.
             </span>
         </div>
     </div>
