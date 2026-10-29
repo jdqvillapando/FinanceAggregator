@@ -14,12 +14,7 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-    user: localStorage.getItem('jwt') ?
-        {
-            username: 'User',
-            token: localStorage.getItem('jwt')!
-        } as AuthResponse :
-        null,
+    user: null,
     status: 'idle',
     errorMessage: null
 };
@@ -46,7 +41,7 @@ const initialState: AuthState = {
 // );
 
 // The Hydration Thunk: Runs automatically on app startup if a token exists
-export const fetchCurrentUser = createAsyncThunk<Omit<AuthResponse, 'token'>, void, { rejectValue: string[] }>(
+export const fetchCurrentUser = createAsyncThunk<AuthResponse, void, { rejectValue: string[] }>(
     'account/fetchCurrentUser', async (_, thunkAPI) => {
         try {
             // Strictly type the network response to map to your Result wrapper
@@ -58,17 +53,12 @@ export const fetchCurrentUser = createAsyncThunk<Omit<AuthResponse, 'token'>, vo
             }
 
             // Extract values directly from your 'data' property
-            const { username, token } = response.data;
+            const { username } = response.data;
             
-            // Rotate the session token safely
-            localStorage.setItem('jwt', token);
 
             return { username };
         }
         catch (error: unknown) {
-            // Always clear the token on session validation failure
-            localStorage.removeItem('jwt');
-            
             if (axios.isAxiosError(error)) {
                 // Extract the backend errors array if available, fallback to a standard array
                 const backendErrors = error.response?.data?.errors;
@@ -84,14 +74,27 @@ export const fetchCurrentUser = createAsyncThunk<Omit<AuthResponse, 'token'>, vo
     }
 );
 
+export const logOutUser = createAsyncThunk<void, void, { rejectValue: string }>(
+    'account/logout', async (_, thunkAPI) => {
+        try {
+            await agent.gateway.logout();
+        }
+        catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                return thunkAPI.rejectWithValue(error.response?.data?.message || 'Logout failed');
+            }
+
+            return thunkAPI.rejectWithValue('An unexpected error occurred during logout.');
+        }
+    }
+);
+
 export const authSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
         setAuthUser: (state, action: PayloadAction<AuthResponse>) => {
             state.user = action.payload;
-            // Persistence happens here, once, globally.
-            localStorage.setItem('jwt', action.payload.token);
         },
         clearAuthErrors: (state) => {
             state.errorMessage = null;
@@ -99,8 +102,6 @@ export const authSlice = createSlice({
         signOut: (state) => {
             state.user = null;
             state.errorMessage = null;
-            localStorage.removeItem('jwt');
-            // We are clearing sessions as well.
             sessionStorage.clear();
         }
     },
@@ -129,20 +130,34 @@ export const authSlice = createSlice({
 
         builder.addCase(fetchCurrentUser.fulfilled, (state, action) => {
             state.status = 'idle';
-            state.user = {
-                username: action.payload.username,
-                token: localStorage.getItem('jwt') || ''
-            };
+            state.user = { username: action.payload.username };
             state.errorMessage = null;
         });
 
         builder.addCase(fetchCurrentUser.rejected, (state, action) => {
-            state.status = 'failed';
+            state.status = 'idle';
             state.user = null;
-            state.errorMessage = Array.isArray(action.payload) ? action.payload[0] : 'Session expired';
+            // Supply a explicit fallback message if the server returned an empty 401
+            state.errorMessage = action.payload?.[0] || 'No active session found.';
+            sessionStorage.clear();
+        });
+
+        builder.addCase(logOutUser.fulfilled, (state, action) => {
+            state.status = 'idle';
+            state.user = null;
+
+            // Suppress the error banner on initial startup hydration check
+            const errorMsg = Array.isArray(action.payload) ? action.payload[0] : null;
+
+            if (errorMsg && !errorMsg.includes('Failed to retrieve user session.')) {
+                state.errorMessage = errorMsg;
+            }
+            else {
+                state.errorMessage = null; // Clean state for unauthenticated visitor
+            }
         });
     },
 });
 
 
-export const { setAuthUser, signOut } = authSlice.actions;
+export const { setAuthUser, signOut, clearAuthErrors } = authSlice.actions;

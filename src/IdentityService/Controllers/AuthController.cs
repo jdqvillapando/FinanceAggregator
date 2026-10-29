@@ -120,10 +120,16 @@ public class AuthController : ControllerBase
         return Unauthorized(Result<AuthResponseDto>.Failure("Invalid password"));
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("currentUser")]
     public async Task<ActionResult<Result<AuthResponseDto>>> CurrentUser()
     {
+        // Prevent unnecessary flagging for first load (unauthenticated access).
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Ok(Result<AuthResponseDto>.Failure("No active session found"));
+        }
+
         var username = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("unique_name");
 
         // If for some reason the token is valid but the claim is missing

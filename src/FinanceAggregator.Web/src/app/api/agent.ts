@@ -10,18 +10,12 @@ import { API_VERSION_V1, GATEWAY_URL } from '../../common/utils/constants';
 
 // Use an instance instead of global defaults
 const api = axios.create({
-    baseURL: GATEWAY_URL
-});
-
-// STANDARDS: Request Interceptor to automatically attach JWT
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('jwt');
-
-    if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+    baseURL: GATEWAY_URL,
+    withCredentials: true,
+    headers: {
+        // Forces browser CORS preflight check on state-changing requests
+        'X-Requested-With': 'XMLHttpRequest'
     }
-
-    return config;
 });
 
 // Cold-start retry interceptor
@@ -46,12 +40,17 @@ const responseBody = <T>(response: AxiosResponse<T>) => response.data;
 // Non-blocking background ping to wake up YARP Gateway on site access
 const warmUpServices = async () => {
     try {
-        await fetch(`${GATEWAY_URL}/health`, { method: 'GET' }).catch(() => {});
+        await fetch(`${GATEWAY_URL}${API_VERSION_V1}/gateway/health`, { method: 'GET' }).catch(() => {});
         await fetch(`${GATEWAY_URL}${API_VERSION_V1}/wallets/health`, { method: 'GET' }).catch(() => {});
         await fetch(`${GATEWAY_URL}${API_VERSION_V1}/auth/health`, { method: 'GET' }).catch(() => {});
     }
     // eslint-disable-next-line no-empty
     catch { } // Silently swallow errors during initial cold-startup
+};
+
+const gateway = {
+    logout: () =>
+        api.post<Result<string>>(`${API_VERSION_V1}/gateway/logout`).then(responseBody),
 };
 
 const authService = {
@@ -82,7 +81,7 @@ const transactionService = {
         api.post<Result<TransactionResponse>>(`${API_VERSION_V1}/wallets/${walletId}/assets/${ticker}/transactions`, body, { headers: { 'Content-Type': 'application/json' } }).then(responseBody),
 };
 
-const agent = { authService, walletService, transactionService, warmUpServices };
+const agent = { gateway, authService, walletService, transactionService, warmUpServices };
 
 
 export default agent;
