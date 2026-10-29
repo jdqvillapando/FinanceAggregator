@@ -37,13 +37,8 @@ const App = () => {
       dispatch(signOut());
     }
     else {
-      // Grab the current stored token from the standardized storage key
-      const token = localStorage.getItem('jwt');
-      
-      // If a token exists, quietly dispatch the background hydration thunk
-      if (token) {
-        dispatch(fetchCurrentUser());
-      }
+      // Quietly dispatch background hydration thunk on app mount (HttpOnly cookie attached automatically)
+      dispatch(fetchCurrentUser());
     }
   }, [dispatch]);
 
