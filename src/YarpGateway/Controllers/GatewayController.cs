@@ -12,20 +12,20 @@ public class GatewayController : ControllerBase
     // Health check is now transferred here.
     [AllowAnonymous]
     [HttpGet("health")]
-    public async Task<ActionResult<Result<object>>> HealthCheck() => await Task.FromResult(Ok(Result<object>.Success(
+    public ActionResult<Result<object>> HealthCheck() => Ok(Result<object>.Success(
         new
         {
             status = "Healthy",
             timestamp = DateTime.UtcNow
         }
-    )));
+    ));
 
     [HttpPost("logout")]
-    public async Task<ActionResult<Result<string>>> Logout()
+    public ActionResult<Result<string>> Logout()
     {
         Response.Cookies.Delete("jwt");
 
-        return await Task.FromResult(Ok(Result<string>.Success("Logged out successfully from gateway session")));
+        return Ok(Result<string>.Success("Logged out successfully from gateway session"));
     }
 
 }
