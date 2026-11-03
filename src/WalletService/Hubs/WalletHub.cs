@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
+
 namespace WalletService.Hubs;
 
 [Authorize] // Guarantees that only users with valid JWT tokens can connect to our real-time streaming channel
@@ -24,7 +25,7 @@ public class WalletHub : Hub<IWalletClient>
         // This allows us to target streaming events directly to this specific user across multiple tabs/devices
         if (!string.IsNullOrEmpty(userId))
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, userId, Context.ConnectionAborted);
         }
 
         await base.OnConnectedAsync();
@@ -38,7 +39,7 @@ public class WalletHub : Hub<IWalletClient>
 
         if (!string.IsNullOrEmpty(userId))
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId, Context.ConnectionAborted);
         }
 
         await base.OnDisconnectedAsync(exception);

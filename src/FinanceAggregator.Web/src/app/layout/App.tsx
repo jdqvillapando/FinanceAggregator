@@ -18,10 +18,11 @@ import  Maintenance  from './Maintenance';
 
 const App = () => {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector(state => state.auth);
+  const { user, status } = useAppSelector(state => state.auth);
   const location = useLocation();
 
   const [isLoginView, setIsLoginView] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!MAINTENANCE_MODE_ENABLED) {
@@ -38,11 +39,22 @@ const App = () => {
     }
     else {
       // Quietly dispatch background hydration thunk on app mount (HttpOnly cookie attached automatically)
-      dispatch(fetchCurrentUser());
+      dispatch(fetchCurrentUser()).finally(() => setIsLoading(false));
     }
   }, [dispatch]);
 
   const isPublicRoute = location.pathname === '/about';
+
+  // Prevent flash of Login component during session rehydration
+  if (isLoading && status === 'pendingAsync') {
+    return (
+      <div className = 'min-h-screen bg-slate-50 flex items-center justify-center'>
+        <div className = 'animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600'></div>
+      </div>
+    );
+  }
+
+  const loginOrRegister = isLoginView ? <Login /> : <Register onRegisterSuccess={ () => setIsLoginView(true) } />;
 
   return (
     <>
@@ -60,7 +72,7 @@ const App = () => {
               <Outlet /> :
               <>
                 <div className = 'max-w-md mx-auto px-6'>
-                  { isLoginView ? <Login /> : <Register onRegisterSuccess={ () => setIsLoginView(true) } /> }
+                  { loginOrRegister }
                   <div className = 'w-full flex justify-center items-center gap-1.5 whitespace-nowrap mt-3'>
                     { isLoginView && <span className = 'text-sm text-slate-500'>No account yet?</span> }
                     <Button

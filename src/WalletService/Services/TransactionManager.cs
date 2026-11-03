@@ -6,6 +6,7 @@ using WalletService.Data;
 using WalletService.Dtos;
 using WalletService.Models;
 
+
 namespace WalletService.Services;
 
 public class TransactionManager : ITransactionManager
@@ -23,11 +24,12 @@ public class TransactionManager : ITransactionManager
         Guid walletId, 
         string ticker, 
         CreateTransactionDto dto, 
-        string userId)
+        string userId,
+        CancellationToken cancellationToken)
     {
         // Authorization Guard: Verify ownership of the wallet first
         var walletExists = await _context.Wallets
-            .AnyAsync(w => w.Id == walletId && w.UserId == userId);
+            .AnyAsync(w => w.Id == walletId && w.UserId == userId, cancellationToken);
 
         if (!walletExists)
         {
@@ -37,7 +39,7 @@ public class TransactionManager : ITransactionManager
         // Locate the asset bucket matching this wallet and ticker
         var asset = await _context.Assets
             .FirstOrDefaultAsync(a => a.WalletId == walletId 
-                                 && a.Ticker.ToUpper() == ticker.ToUpper());
+                                 && a.Ticker.ToUpper() == ticker.ToUpper(), cancellationToken);
 
         if (asset == null)
         {
@@ -89,10 +91,10 @@ public class TransactionManager : ITransactionManager
             Description = transaction.Description,
             Timestamp = transaction.Timestamp,
             UserId = userId
-        });
+        }, cancellationToken);
 
         // Commit mutations atomically within a single transactional unit
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         // Build the mapped tracking response object
         var response = new TransactionResponseDto
