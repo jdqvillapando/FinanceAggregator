@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
         policy.SetIsOriginAllowed(origin =>
         {
             var host = new Uri(origin).Host;
-            return host == "localhost" || host.EndsWith(".azurestaticapps.net");
+            return host == "localhost" || host.EndsWith(".azurestaticapps.net") || host.EndsWith(".azurecontainerapps.io");
         })
         .AllowAnyMethod()
         .AllowAnyHeader()
@@ -185,7 +185,7 @@ app.Use(async (context, next) =>
                 {
                     HttpOnly = true,                                // Blocks XSS script reading
                     Secure = context.Request.IsHttps,               // Enforces HTTPS transport; Dynamically true on HTTPS, false on local HTTP
-                    SameSite = SameSiteMode.Lax,                    // Blocks XSRF cross-site auto-attachment
+                    SameSite = SameSiteMode.None,                    // Blocks XSRF cross-site auto-attachment (switched to `none` for Azure container apps)
                     Path = "/",                                     // Scopes cookie to entire domain path
                     Expires = DateTimeOffset.UtcNow.AddHours(1)     // Set cookie TTL to match the 60-minute JWT expiration in appsettings.json
                 });
