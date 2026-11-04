@@ -17,7 +17,7 @@ namespace WalletService.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/v1/[controller]")] // Versioning (v1) is an industry best practice
+[Route("api/v1/[controller]")]
 public class WalletsController : ControllerBase
 {
     private readonly WalletDbContext _context;
@@ -37,17 +37,17 @@ public class WalletsController : ControllerBase
     // [AllowAnonymous] ensures pre-warm pings succeed without needing a JWT Bearer token.
     [AllowAnonymous]
     [HttpGet("health")]
-    public async Task<ActionResult<Result<object>>> HealthCheck() => await Task.FromResult(Ok(Result<object>.Success(
+    public ActionResult<Result<object>> HealthCheck(CancellationToken cancellationToken) => Ok(Result<object>.Success(
         new
         {
             status = "Healthy",
             timestamp = DateTime.UtcNow
         }
-    )));
+    ));
 
     // GET: api/v1/wallets
     [HttpGet]
-    public async Task<ActionResult<Result<IEnumerable<Wallet>>>> GetWallets()
+    public async Task<ActionResult<Result<IEnumerable<Wallet>>>> GetWallets(CancellationToken cancellationToken)
     {
         // Extract ID from the JWT 'sub' claim
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -60,7 +60,7 @@ public class WalletsController : ControllerBase
         try
         {
             // Attempt an in-memory look up directly from Redis RAM
-            var cachedData = await _cache.GetStringAsync(cacheKey);
+            var cachedData = await _cache.GetStringAsync(cacheKey, cancellationToken);
             if (!string.IsNullOrEmpty(cachedData))
             {
                 // Cache Hit! Instantly deserialize and serve data in under 2ms
@@ -79,7 +79,7 @@ public class WalletsController : ControllerBase
             .Where(w => w.UserId == userId)
             .Include(i => i.Assets.OrderBy(o => o.Ticker))
             .OrderBy(o => o.Name)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         try
         {
@@ -93,7 +93,7 @@ public class WalletsController : ControllerBase
             };
 
             var serializedData = JsonSerializer.Serialize(userWallets);
-            await _cache.SetStringAsync(cacheKey, serializedData, cacheOptions);
+            await _cache.SetStringAsync(cacheKey, serializedData, cacheOptions, cancellationToken);
         }
         catch (Exception)
         {
@@ -105,7 +105,7 @@ public class WalletsController : ControllerBase
 
     // POST: api/v1/wallets
     [HttpPost]
-    public async Task<ActionResult<Result<Wallet>>> CreateWallet(CreateWalletDto walletDto)
+    public async Task<ActionResult<Result<Wallet>>> CreateWallet(CreateWalletDto walletDto, CancellationToken cancellationToken)
     {
         // Get the real ID from the token (the source of truth)
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -122,12 +122,12 @@ public class WalletsController : ControllerBase
         };
 
         _context.Wallets.Add(wallet);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         try
         {
             // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
-            await _cache.RemoveAsync($"user_wallets_{userId}");
+            await _cache.RemoveAsync($"user_wallets_{userId}", cancellationToken);
         }
         catch (Exception)
         {
@@ -139,14 +139,14 @@ public class WalletsController : ControllerBase
 
     // POST: api/v1/wallets/{walletId}/assets
     [HttpPost("{walletId}/assets")]
-    public async Task<ActionResult<Result<Asset>>> AddAssetToWallet(Guid walletId, AddAssetDto assetDto)
+    public async Task<ActionResult<Result<Asset>>> AddAssetToWallet(Guid walletId, AddAssetDto assetDto, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         // Find the wallet AND verify ownership
         var wallet = await _context.Wallets
             .Include(i => i.Assets)
-            .FirstOrDefaultAsync(f => f.Id == walletId && f.UserId == userId);
+            .FirstOrDefaultAsync(f => f.Id == walletId && f.UserId == userId, cancellationToken);
 
         if (wallet == null) return NotFound(Result<Asset>.Failure("Wallet not found or you don't have access."));
 
@@ -165,12 +165,12 @@ public class WalletsController : ControllerBase
         };
 
         _context.Assets.Add(asset);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         try
         {
             // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
-            await _cache.RemoveAsync($"user_wallets_{userId}");
+            await _cache.RemoveAsync($"user_wallets_{userId}", cancellationToken);
         }
         catch (Exception)
         {
@@ -183,19 +183,19 @@ public class WalletsController : ControllerBase
 
     // DELETE: api/v1/wallets/{walletId}/assets/{ticker}
     [HttpDelete("{walletId}/assets/{ticker}")]
-    public async Task<ActionResult<Result<string>>> RemoveAsset(Guid walletId, string ticker)
+    public async Task<ActionResult<Result<string>>> RemoveAsset(Guid walletId, string ticker, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         // Verify the Wallet belongs to the user first
         var walletExists = await _context.Wallets
-            .AnyAsync(a => a.Id == walletId && a.UserId == userId);
+            .AnyAsync(a => a.Id == walletId && a.UserId == userId, cancellationToken);
 
         if (!walletExists) 
             return NotFound(Result<string>.Failure("Wallet not found or you don't have access."));
 
         // Now find the asset within that specific wallet
-        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
+        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper(), cancellationToken);
 
         if (asset == null) 
             return NotFound(Result<string>.Failure("Asset not found in this wallet."));
@@ -209,15 +209,15 @@ public class WalletsController : ControllerBase
             asset.Ticker,
             UserId = userId,
             DeletedAt = DateTime.UtcNow
-        });
+        }, cancellationToken);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         try
         {
             // OPTIMIZATION GUARD: Proactively evict the cache key on schema creation
             // so the user dashboard reflects the deleted row instantly
-            await _cache.RemoveAsync($"user_wallets_{userId}");
+            await _cache.RemoveAsync($"user_wallets_{userId}", cancellationToken);
         }
         catch (Exception)
         {
@@ -230,7 +230,7 @@ public class WalletsController : ControllerBase
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/deposit
     [Obsolete("This endpoint is deprecated. Use POST api/v1/wallets/{walletId}/assets/{ticker}/transactions instead.", error: true)]
     [HttpPost("{walletId}/assets/{ticker}/deposit")]
-    public async Task<ActionResult<Result<TransactionResponseDto>>> Deposit(Guid walletId, string ticker, [FromBody] decimal amount)
+    public async Task<ActionResult<Result<TransactionResponseDto>>> Deposit(Guid walletId, string ticker, [FromBody] decimal amount, CancellationToken cancellationToken)
     {
         if (amount <= 0) return BadRequest(Result<TransactionResponseDto>.Failure("Amount must be positive."));
         
@@ -238,13 +238,13 @@ public class WalletsController : ControllerBase
 
         // First, verify the Wallet belongs to the user
         var walletExists = await _context.Wallets
-            .AnyAsync(a => a.Id == walletId && a.UserId == userId);
+            .AnyAsync(a => a.Id == walletId && a.UserId == userId, cancellationToken);
 
         if (!walletExists) 
             return NotFound(Result<TransactionResponseDto>.Failure("Wallet not found or you don't have access."));
 
         // Now find the asset inside that specific wallet
-        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
+        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper(), cancellationToken);
 
         if (asset == null) 
             return NotFound(Result<TransactionResponseDto>.Failure("Asset not found in this wallet."));
@@ -264,7 +264,7 @@ public class WalletsController : ControllerBase
         };
 
         _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         var response = new TransactionResponseDto
         {
@@ -280,7 +280,7 @@ public class WalletsController : ControllerBase
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/withdraw
     [Obsolete("This endpoint is deprecated. Use POST api/v1/wallets/{walletId}/assets/{ticker}/transactions instead.", error: true)]
     [HttpPost("{walletId}/assets/{ticker}/withdraw")]
-    public async Task<ActionResult<Result<TransactionResponseDto>>> Withdraw(Guid walletId, string ticker, [FromBody] decimal amount)
+    public async Task<ActionResult<Result<TransactionResponseDto>>> Withdraw(Guid walletId, string ticker, [FromBody] decimal amount, CancellationToken cancellationToken)
     {
         if (amount <= 0) return BadRequest(Result<TransactionResponseDto>.Failure("Amount must be positive."));
         
@@ -288,13 +288,13 @@ public class WalletsController : ControllerBase
 
         // Verify the Wallet belongs to the user
         var walletExists = await _context.Wallets
-            .AnyAsync(a => a.Id == walletId && a.UserId == userId);
+            .AnyAsync(a => a.Id == walletId && a.UserId == userId, cancellationToken);
 
         if (!walletExists) 
             return NotFound(Result<TransactionResponseDto>.Failure("Wallet not found or you don't have access."));
 
         // Find the asset
-        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper());
+        var asset = await _context.Assets.FirstOrDefaultAsync(f => f.WalletId == walletId && f.Ticker.ToUpper() == ticker.ToUpper(), cancellationToken);
 
         if (asset == null) 
             return NotFound(Result<TransactionResponseDto>.Failure("Asset not found in this wallet."));
@@ -320,7 +320,7 @@ public class WalletsController : ControllerBase
         };
 
         _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         var response = new TransactionResponseDto
         {
@@ -335,13 +335,13 @@ public class WalletsController : ControllerBase
 
     // GET: api/v1/wallets/{walletId}/assets/{ticker}/transactions
     [HttpGet("{walletId}/assets/{ticker}/transactions")]
-    public async Task<ActionResult<Result<IEnumerable<Transaction>>>> GetTransactionHistory(Guid walletId, string ticker)
+    public async Task<ActionResult<Result<IEnumerable<Transaction>>>> GetTransactionHistory(Guid walletId, string ticker, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         // Verify ownership of the wallet first
         var walletExists = await _context.Wallets
-            .AnyAsync(a => a.Id == walletId && a.UserId == userId);
+            .AnyAsync(a => a.Id == walletId && a.UserId == userId, cancellationToken);
 
         if (!walletExists) return NotFound(Result<IEnumerable<Transaction>>.Failure("Wallet not found."));
 
@@ -351,21 +351,21 @@ public class WalletsController : ControllerBase
             // .Include(i => i.Asset)
             .Where(w => w.Asset.WalletId == walletId && w.Asset.Ticker.ToUpper() == ticker.ToUpper())
             .OrderByDescending(o => o.Timestamp) // Newest first
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(Result<IEnumerable<Transaction>>.Success(transactions));
     }
 
     // POST: api/v1/wallets/{walletId}/assets/{ticker}/transactions
     [HttpPost("{walletId}/assets/{ticker}/transactions")]
-    public async Task<ActionResult<Result<TransactionResponseDto>>> CreateTransaction(Guid walletId, string ticker, CreateTransactionDto dto)
+    public async Task<ActionResult<Result<TransactionResponseDto>>> CreateTransaction(Guid walletId, string ticker, CreateTransactionDto dto, CancellationToken cancellationToken)
     {
         // Extract ID from the JWT token (the strict client source of truth)
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
         // Route execution over to our extracted transaction domain service engine
-        var result = await _transactionManager.ProcessTransactionAsync(walletId, ticker, dto, userId);
+        var result = await _transactionManager.ProcessTransactionAsync(walletId, ticker, dto, userId, cancellationToken);
 
         if (!result.IsSuccess)
         {
@@ -377,7 +377,7 @@ public class WalletsController : ControllerBase
             // OPTIMIZATION GUARD:
             // Wiping out the cache ensures that the subsequent fast-read path 
             // query hits a cache miss and captures the database balance changes
-            await _cache.RemoveAsync($"user_wallets_{userId}");
+            await _cache.RemoveAsync($"user_wallets_{userId}", cancellationToken);
         }
         catch (Exception ex)
         {

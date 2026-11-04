@@ -1,6 +1,6 @@
 using WalletService.Dtos;
-using WalletService.Models;
-using WalletService.Common; // Adjust if your 'Result' model lives elsewhere
+using WalletService.Common;
+
 
 namespace WalletService.Services;
 
@@ -10,5 +10,6 @@ public interface ITransactionManager
         Guid walletId, 
         string ticker, 
         CreateTransactionDto dto, 
-        string userId);
+        string userId,
+        CancellationToken cancellationToken);
 }

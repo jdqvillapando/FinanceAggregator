@@ -6,6 +6,7 @@ using WalletService.Contracts;
 using WalletService.Data;
 using WalletService.Hubs;
 
+
 namespace WalletService.Consumers;
 
 public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
@@ -37,7 +38,7 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
 
         // Fetch the target asset bucket database record
         var asset = await _context.Assets
-            .FirstOrDefaultAsync(a => a.Id == message.AssetId);
+            .FirstOrDefaultAsync(a => a.Id == message.AssetId, context.CancellationToken);
 
         // Fetch the target asset bucket database record that was already finalized by the TransactionManager
         if (asset == null)
@@ -59,7 +60,7 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
             // Every time a consumer updates the database out-of-band, we MUST clear 
             // the cache key so the next read path fetches the fresh balance totals!
             string cacheKey = $"user_wallets_{message.UserId}";
-            await _cache.RemoveAsync(cacheKey);
+            await _cache.RemoveAsync(cacheKey, context.CancellationToken);
         }
         catch(Exception ex)
         {
@@ -74,7 +75,7 @@ public class TransactionExecutedConsumer : IConsumer<TransactionExecuted>
         {
             await _hubContext.Clients
                 .Group(message.UserId)
-                .BalanceUpdated(asset.Id, asset.Balance);
+                .BalanceUpdated(asset.Id, asset.Balance, context.CancellationToken);
                 
             _logger.LogInformation("Real-time balance notification pushed securely to User Group: {UserId}", message.UserId);
         }

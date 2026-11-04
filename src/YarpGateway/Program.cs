@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +8,9 @@ using YarpGateway.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 var maintenanceModeEnabled = builder.Configuration.GetValue("GatewaySettings:MaintenanceModeEnabled", false);
+
+// Register controllers
+builder.Services.AddControllers();
 
 // Add CORS (Essential for Frontend)
 builder.Services.AddCors(options =>
@@ -98,22 +102,24 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// =======================================================================
-// LIGHTWEIGHT PRE-WARM HEALTH ENDPOINT
-// =======================================================================
-// Placed before UseAuthentication & UseAuthorization so cold-start pings 
-// return instantly without needing a JWT token or triggering database checks.
-app.MapGet("/health", async () => await Task.FromResult(
-    Results.Ok(
-        Result<object>.Success(
-            new
-            {
-                status = "Healthy",
-                timestamp = DateTime.UtcNow
-            }
-        )
-    )
-));
+// JWT inbound interceptor
+// Extract JWT from Cookie or Query string and attach Bearer header downstream.
+app.Use(async (context, next) =>
+{
+    string? token = context.Request.Cookies["jwt"];
+
+    if (string.IsNullOrEmpty(token) && context.Request.Query.ContainsKey("access_token"))
+    {
+        token = context.Request.Query["access_token"];
+    }
+
+    if (!string.IsNullOrEmpty(token))
+    {
+        context.Request.Headers.Authorization = $"Bearer {token}";
+    }
+
+    await next();
+});
 
 // =======================================================================
 // FIX: METADATA CORS EVALUATOR BRIDGE (NEW FOR WEBSOCKETS HANDSHAKE)
@@ -126,6 +132,88 @@ app.UseCors();
 app.UseAuthentication();
 // This checks if they are allowed in
 app.UseAuthorization();
+
+// JWT outbound interceptor
+// Conceal token from AuthResponse JSON body and issue HttpOnly cookie on Login.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+    var isLoginRequest = path.EndsWith("/auth/login") || path.Contains("/api/v1/auth/login");
+
+    if (!isLoginRequest)
+    {
+        await next();
+        return;
+    }
+
+    var originalBodyStream = context.Response.Body;
+    using var responseBody = new MemoryStream();
+    context.Response.Body = responseBody;
+
+    await next();
+
+    if (context.Response.StatusCode == 200)
+    {
+        responseBody.Seek(0, SeekOrigin.Begin);
+        string responseText = await new StreamReader(responseBody).ReadToEndAsync();
+
+        try
+        {
+            using var jsonDoc = System.Text.Json.JsonDocument.Parse(responseText);
+            var root = jsonDoc.RootElement;
+
+            // Handle both flat AuthResponse and Result<AuthResponse> wrapped JSON payloads
+            string? token = null;
+            string? username = null;
+
+            if (root.TryGetProperty("data", out var dataEl) && dataEl.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                if (dataEl.TryGetProperty("token", out var tEl)) token = tEl.GetString();
+                if (dataEl.TryGetProperty("username", out var uEl)) username = uEl.GetString();
+            }
+            else
+            {
+                if (root.TryGetProperty("token", out var tEl)) token = tEl.GetString();
+                if (root.TryGetProperty("username", out var uEl)) username = uEl.GetString();
+                if (username == null && root.TryGetProperty("user", out var usrEl)) username = usrEl.GetString();
+            }
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Issue HttpOnly Cookie with proper local/prod environment flags
+                context.Response.Cookies.Append("jwt", token, new CookieOptions
+                {
+                    HttpOnly = true,                                // Blocks XSS script reading
+                    Secure = context.Request.IsHttps,               // Enforces HTTPS transport; Dynamically true on HTTPS, false on local HTTP
+                    SameSite = SameSiteMode.Lax,                    // Blocks XSRF cross-site auto-attachment
+                    Path = "/",                                     // Scopes cookie to entire domain path
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)     // Set cookie TTL to match the 60-minute JWT expiration in appsettings.json
+                });
+
+                // Write concealed JSON response back to client (token omitted)
+                var modifiedResponse = Result<object>.Success(new { username });
+                var modifiedJson = JsonSerializer.Serialize(modifiedResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                context.Response.Body = originalBodyStream;
+                context.Response.Headers.ContentLength = Encoding.UTF8.GetByteCount(modifiedJson);
+                await context.Response.WriteAsync(modifiedJson);
+
+                return;
+            }
+        }
+        catch
+        {
+            // If JSON parsing fails, fall back gracefully to original response
+        }
+    }
+
+    responseBody.Seek(0, SeekOrigin.Begin);
+    await responseBody.CopyToAsync(originalBodyStream);
+});
+
+// Enable controllers
+app.MapControllers();
+
 // Enable the proxy
 app.MapReverseProxy();
 
