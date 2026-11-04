@@ -38,16 +38,16 @@ public class AuthController : ControllerBase
     // [AllowAnonymous] ensures pre-warm pings succeed without needing a JWT Bearer token.
     [AllowAnonymous]
     [HttpGet("health")]
-    public async Task<ActionResult<Result<object>>> HealthCheck() => await Task.FromResult(Ok(Result<object>.Success(
+    public ActionResult<Result<object>> HealthCheck() => Ok(Result<object>.Success(
         new
         {
             status = "Healthy",
             timestamp = DateTime.UtcNow
         }
-    )));
+    ));
 
     [HttpPost("register")]
-    public async Task<ActionResult<string>> Register(RegisterDto registerDto)
+    public async Task<ActionResult<string>> Register(RegisterDto registerDto, CancellationToken cancellationToken)
     {
         var user = new ApplicationUser 
         { 
@@ -67,9 +67,9 @@ public class AuthController : ControllerBase
                     UserId = user.Id,
                     Email = user.Email!,
                     FullName = user.FullName!
-                });
+                }, cancellationToken);
 
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
 
                 return Ok(Result<string>.Success("User registered successfully"));
             }
@@ -120,10 +120,16 @@ public class AuthController : ControllerBase
         return Unauthorized(Result<AuthResponseDto>.Failure("Invalid password"));
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("currentUser")]
     public async Task<ActionResult<Result<AuthResponseDto>>> CurrentUser()
     {
+        // Prevent unnecessary flagging for first load (unauthenticated access).
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Ok(Result<AuthResponseDto>.Failure("No active session found"));
+        }
+
         var username = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("unique_name");
 
         // If for some reason the token is valid but the claim is missing

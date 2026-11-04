@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { HttpTransportType, HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
 import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
 import { updateAssetBalance } from '../../features/wallets/reducers/walletSlice';
@@ -8,13 +8,13 @@ import { GATEWAY_URL } from '../utils/constants';
 
 export const useWalletHub = () => {
     const dispatch = useAppDispatch();
-    // Select the user identity metadata token out of your active auth slice
-    const token = useAppSelector(state => state.auth.user?.token);
+    // Guard using active user session metadata (token is concealed in HttpOnly cookie)
+    const user = useAppSelector(state => state.auth.user);
     const connectionRef = useRef<HubConnection | null>(null);
 
     useEffect(() => {
         // Guard condition: Only establish a persistent connection if the user is actively authenticated
-        if (!token) {
+        if (!user) {
             if (connectionRef.current) {
                 connectionRef.current.stop();
                 connectionRef.current = null;
@@ -26,10 +26,7 @@ export const useWalletHub = () => {
         // Initialize the HubConnectionBuilder targeting our YARP proxy gateway path routing
         const connection = new HubConnectionBuilder()
             .withUrl(`${GATEWAY_URL}/hubs/wallets`, {
-                skipNegotiation: true,
-                transport: HttpTransportType.WebSockets,
-                // Pass the user's cryptographically signed JWT token across the handshake protocol headers
-                accessTokenFactory: () => token
+                withCredentials: true // Transmits HttpOnly 'jwt' cookie during handshake
             })
             .configureLogging(LogLevel.Warning)
             .withAutomaticReconnect() // Auto-handle unexpected Wi-Fi drops or socket teardowns
@@ -61,5 +58,5 @@ export const useWalletHub = () => {
                 connectionRef.current = null;
             }
         };
-    }, [token, dispatch]);
+    }, [user, dispatch]);
 };

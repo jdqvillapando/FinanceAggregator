@@ -21,7 +21,7 @@ public class UserCreatedConsumer : IConsumer<UserCreated>
         // dbContext.Message contains the RabbitMQ data
         // _dbContext is your link to the SQLite/SQL database
 
-        var exists = await _dbContext.Wallets.AnyAsync(w => w.UserId == context.Message.UserId);
+        var exists = await _dbContext.Wallets.AnyAsync(w => w.UserId == context.Message.UserId, context.CancellationToken);
         if (exists) return;
         
         var defaultWallet = new Wallet
@@ -33,6 +33,6 @@ public class UserCreatedConsumer : IConsumer<UserCreated>
         };
 
         _dbContext.Wallets.Add(defaultWallet);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
     }
 }

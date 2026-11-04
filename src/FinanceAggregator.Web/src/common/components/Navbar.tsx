@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '../../app/store/configureStore';
 
-import { signOut } from '../../features/auth/reducers/authSlice';
+import { logOutUser } from '../../features/auth/reducers/authSlice';
 
 import { MAINTENANCE_MODE_ENABLED } from '../utils/constants';
 
@@ -47,7 +47,7 @@ const Navbar = () => {
                                         <span className = 'text-sm font-medium text-slate-700'>{ user.username }</span>
                                     </div>
                                     <button 
-                                        onClick = { () => dispatch(signOut()) }
+                                        onClick = { () => dispatch(logOutUser()) }
                                         className = 'bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold transition-all'
                                     >
                                         Logout
