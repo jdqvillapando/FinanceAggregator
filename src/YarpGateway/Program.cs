@@ -183,11 +183,15 @@ app.Use(async (context, next) =>
                 // Issue HttpOnly Cookie with proper local/prod environment flags
                 context.Response.Cookies.Append("jwt", token, new CookieOptions
                 {
-                    HttpOnly = true,                                // Blocks XSS script reading
-                    Secure = context.Request.IsHttps,               // Enforces HTTPS transport; Dynamically true on HTTPS, false on local HTTP
-                    SameSite = SameSiteMode.None,                    // Blocks XSRF cross-site auto-attachment (switched to `none` for Azure container apps)
-                    Path = "/",                                     // Scopes cookie to entire domain path
-                    Expires = DateTimeOffset.UtcNow.AddHours(1)     // Set cookie TTL to match the 60-minute JWT expiration in appsettings.json
+                    HttpOnly = true,                                // Blocks XSS script reading ##
+                    Secure = true,                                  // Enforces HTTPS transport; keep as true since SameSite=Lax ##
+                    SameSite = SameSiteMode.None,                   // Blocks XSRF cross-site auto-attachment
+                                                                    // (switched to `none` for Azure container apps and static web app;
+                                                                    // can be reverted to `lax` after reconciling the frontend's and
+                                                                    // backend's URLs to be uniformed) ##
+                    Path = "/",                                     // Scopes cookie to entire domain path ##
+                    Expires = DateTimeOffset.UtcNow.AddHours(1)     // Set cookie TTL to match the 60-minute JWT expiration in
+                                                                    // appsettings.json ##
                 });
 
                 // Write concealed JSON response back to client (token omitted)
