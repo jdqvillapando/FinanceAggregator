@@ -11,6 +11,7 @@ using WalletService.Data;
 using WalletService.Dtos;
 using WalletService.Models;
 using WalletService.Services;
+using WalletService.Utils;
 
 
 namespace WalletService.Controllers;
@@ -22,13 +23,15 @@ public class WalletsController : ControllerBase
 {
     private readonly WalletDbContext _context;
     private readonly ITransactionManager _transactionManager;
+    private readonly IExchangeRateService _exchangeRateService;
     private readonly IDistributedCache _cache;
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public WalletsController(WalletDbContext context, ITransactionManager transactionManager, IDistributedCache cache, IPublishEndpoint publishEndpoint)
+    public WalletsController(WalletDbContext context, ITransactionManager transactionManager, IExchangeRateService exchangeRateService, IDistributedCache cache, IPublishEndpoint publishEndpoint)
     {
         _context = context;
         _transactionManager = transactionManager;
+        _exchangeRateService = exchangeRateService;
         _cache = cache;
         _publishEndpoint = publishEndpoint;
     }
@@ -387,5 +390,36 @@ public class WalletsController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    // GET: api/v1/wallets/{walletId}/grandtotal
+    [HttpGet("{walletId}/grandtotal")]
+    public async Task<ActionResult<Result<GrandTotalDto>>> GetWalletGrandTotal(Guid walletId, CancellationToken cancellationToken)
+    {
+        // Extract and validate user ID from identity claims
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(Result<GrandTotalDto>.Failure("User identity claims not found."));
+        }
+
+        // Fetch the specified wallet ensuring ownership matches the authenticated user
+        var wallet = await _context.Wallets
+            .Include(w => w.Assets)
+            .FirstOrDefaultAsync(w => w.Id == walletId && w.UserId == userId, cancellationToken);
+
+        if (wallet == null)
+        {
+            return NotFound(Result<GrandTotalDto>.Failure("Wallet not found or access denied."));
+        }
+
+        // Fetch USD exchange rates (handles Redis cache check & Frankfurter v2 fallback)
+        var rates = await _exchangeRateService.GetUsdExchangeRatesAsync(cancellationToken);
+
+        // Calculate total balance in USD and evaluate exclusion list
+        var grandTotalDto = CalculateGrandTotal.CalculateWalletGT(wallet.Assets, rates);
+
+        return Ok(Result<GrandTotalDto>.Success(grandTotalDto));
     }
 }

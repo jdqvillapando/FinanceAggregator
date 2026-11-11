@@ -8,7 +8,6 @@ using MassTransit;
 using StackExchange.Redis;
 using Polly;
 using Polly.Extensions.Http;
-using WalletService.Consumers;
 using WalletService.Data;
 using WalletService.Middleware;
 using WalletService.Services;
@@ -178,6 +177,9 @@ builder.Services.AddMassTransit(x =>
         cfg.ConfigureEndpoints(context);
     });
 });
+
+// Register Exchange Rate Service HttpClient
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
 
 // Add services to the container
 builder.Services.AddControllers();
